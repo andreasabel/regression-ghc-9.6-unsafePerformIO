@@ -224,21 +224,15 @@ library
       Agda.Compiler.Treeless.Uncase
       Agda.Compiler.Treeless.Unused
       Agda.ImpossibleTest
-      Agda.Interaction.AgdaTop
       Agda.Interaction.Base
       Agda.Interaction.BasicOps
-      Agda.Interaction.CommandLine
       Agda.Interaction.EmacsCommand
-      Agda.Interaction.EmacsTop
       Agda.Interaction.ExitCode
-      Agda.Interaction.JSONTop
-      Agda.Interaction.JSON
       Agda.Interaction.FindFile
       Agda.Interaction.Highlighting.Common
       Agda.Interaction.Highlighting.Emacs
       Agda.Interaction.Highlighting.FromAbstract
       Agda.Interaction.Highlighting.Generate
-      Agda.Interaction.Highlighting.JSON
       Agda.Interaction.Highlighting.Precise
       Agda.Interaction.Highlighting.Range
       Agda.Interaction.Highlighting.Vim

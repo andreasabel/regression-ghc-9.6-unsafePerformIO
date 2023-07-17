@@ -21,12 +21,9 @@ import qualified System.IO as IO
 
 import Paths_Agda            ( getDataDir )
 
-import Agda.Interaction.CommandLine
 import Agda.Interaction.ExitCode (AgdaError(..), exitSuccess, exitAgdaWith)
 import Agda.Interaction.Options
 import Agda.Interaction.Options.Help (Help (..))
-import Agda.Interaction.EmacsTop (mimicGHCi)
-import Agda.Interaction.JSONTop (jsonREPL)
 import Agda.Interaction.FindFile ( SourceFile(SourceFile) )
 import qualified Agda.Interaction.Imports as Imp
 
@@ -128,15 +125,15 @@ data FrontendType
 
 -- Emacs mode. Note that it ignores the "check" action because it calls typeCheck directly.
 emacsModeInteractor :: Interactor ()
-emacsModeInteractor setup _check = mimicGHCi setup
+emacsModeInteractor setup _check = undefined
 
 -- JSON mode. Note that it ignores the "check" action because it calls typeCheck directly.
 jsonModeInteractor :: Interactor ()
-jsonModeInteractor setup _check = jsonREPL setup
+jsonModeInteractor setup _check = undefined
 
 -- The deprecated repl mode.
 replInteractor :: Maybe AbsolutePath -> Interactor ()
-replInteractor = runInteractionLoop
+replInteractor = undefined
 
 -- The interactor to use when there are no frontends or backends specified.
 defaultInteractor :: AbsolutePath -> Interactor ()
