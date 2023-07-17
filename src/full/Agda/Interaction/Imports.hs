@@ -72,7 +72,6 @@ import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Rewriting.Confluence ( checkConfluenceOfRules )
 import Agda.TypeChecking.MetaVars ( openMetasToPostulates )
 import Agda.TypeChecking.Monad
-import Agda.TypeChecking.Serialise
 import Agda.TypeChecking.Primitive
 import Agda.TypeChecking.Pretty as P
 import Agda.TypeChecking.DeadCode
@@ -878,67 +877,14 @@ highlightFromInterface i file = do
 -- | Read interface file corresponding to a module.
 
 readInterface :: InterfaceFile -> TCM (Maybe Interface)
-readInterface file = do
-    let ifp = filePath $ intFilePath file
-    -- Decode the interface file
-    (s, close) <- liftIO $ readBinaryFile' ifp
-    do  mi <- liftIO . E.evaluate =<< decodeInterface s
-
-        -- Close the file. Note
-        -- ⑴ that evaluate ensures that i is evaluated to WHNF (before
-        --   the next IO operation is executed), and
-        -- ⑵ that decode returns Nothing if an error is encountered,
-        -- so it is safe to close the file here.
-        liftIO close
-
-        return $ constructIScope <$> mi
-      -- Catch exceptions and close
-      `catchError` \e -> liftIO close >> handler e
-  -- Catch exceptions
-  `catchError` handler
-  where
-    handler = \case
-      IOException _ _ e -> do
-        reportSLn "" 0 $ "IO exception: " ++ show e
-        return Nothing   -- Work-around for file locking bug.
-                         -- TODO: What does this refer to? Please
-                         -- document.
-      e -> throwError e
+readInterface file = return Nothing
 
 -- | Writes the given interface to the given file.
 --
 -- The written interface is decoded and returned.
 
 writeInterface :: AbsolutePath -> Interface -> TCM Interface
-writeInterface file i = let fp = filePath file in do
-    reportSLn "import.iface.write" 5  $
-      "Writing interface file " ++ fp ++ "."
-    -- Andreas, 2015-07-13
-    -- After QName memoization (AIM XXI), scope serialization might be cheap enough.
-    -- -- Andreas, Makoto, 2014-10-18 AIM XX:
-    -- -- iInsideScope is bloating the interface files, so we do not serialize it?
-    -- i <- return $
-    --   i { iInsideScope  = emptyScopeInfo
-    --     }
-    -- [Old: Andreas, 2016-02-02 this causes issue #1804, so don't do it:]
-    -- Andreas, 2020-05-13, #1804, #4647: removed private declarations
-    -- only when we actually write the interface.
-    let filteredIface = i { iInsideScope  = withoutPrivates $ iInsideScope i }
-    reportSLn "import.iface.write" 50 $
-      "Writing interface file with hash " ++ show (iFullHash filteredIface) ++ "."
-    encodedIface <- encodeFile fp filteredIface
-    reportSLn "import.iface.write" 5 "Wrote interface file."
-#if __GLASGOW_HASKELL__ >= 804
-    fromMaybe __IMPOSSIBLE__ <$> (Bench.billTo [Bench.Deserialization] (decode encodedIface))
-#else
-    return filteredIface
-#endif
-  `catchError` \e -> do
-    reportSLn "" 1 $
-      "Failed to write interface " ++ fp ++ "."
-    liftIO $
-      whenM (doesFileExist fp) $ removeFile fp
-    throwError e
+writeInterface file i = return i
 
 -- | Tries to type check a module and write out its interface. The
 -- function only writes out an interface file if it does not encounter
@@ -1304,12 +1250,7 @@ buildInterface src topLevel = do
 --   We do not need to check that the file exist because we only
 --   accept @InterfaceFile@ as an input and not arbitrary @AbsolutePath@!
 getInterfaceFileHashes :: InterfaceFile -> IO (Maybe (Hash, Hash))
-getInterfaceFileHashes fp = do
-  let ifile = filePath $ intFilePath fp
-  (s, close) <- readBinaryFile' ifile
-  let hs = decodeHashes s
-  maybe 0 (uncurry (+)) hs `seq` close
-  return hs
+getInterfaceFileHashes fp = return Nothing
 
 moduleHash :: TopLevelModuleName -> TCM Hash
 moduleHash m = iFullHash <$> getNonMainInterface m Nothing

@@ -1,4 +1,6 @@
 {-# OPTIONS -v impossible:10 #-}
+{-# OPTIONS --no-load-primitives #-}
+
 -- Andreas, 2021-05-12, issue #5379
 module ImpossibleVerboseReduceM where
 
