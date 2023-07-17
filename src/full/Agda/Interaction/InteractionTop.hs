@@ -61,7 +61,6 @@ import Agda.Interaction.FindFile
 import Agda.Interaction.Options
 import Agda.Interaction.Options.Lenses as Lenses
 import Agda.Interaction.MakeCase
-import Agda.Interaction.SearchAbout
 import Agda.Interaction.Response hiding (Function, ExtendedLambda)
 import qualified Agda.Interaction.Response as R
 import qualified Agda.Interaction.BasicOps as B
@@ -545,8 +544,7 @@ interpret Cmd_no_metas = do
 interpret (Cmd_show_module_contents_toplevel norm s) =
   atTopLevel $ showModuleContents norm noRange s
 
-interpret (Cmd_search_about_toplevel norm s) =
-  atTopLevel $ searchAbout norm noRange s
+interpret (Cmd_search_about_toplevel norm s) = undefined
 
 interpret (Cmd_solveAll norm)        = solveInstantiatedGoals norm Nothing
 interpret (Cmd_solveOne norm ii _ _) = solveInstantiatedGoals norm' (Just ii)
@@ -1048,15 +1046,6 @@ showModuleContents :: Rewrite -> Range -> String -> CommandM ()
 showModuleContents norm rng s = do
   (modules, tel, types) <- lift $ B.moduleContents norm rng s
   display_info $ Info_ModuleContents modules tel types
-
--- | Shows all the top-level names in scope which mention all the given
--- identifiers in their type.
-
-searchAbout :: Rewrite -> Range -> String -> CommandM ()
-searchAbout norm rg names = do
-  unlessNull (trim names) $ \ trimmedNames -> do
-    hits <- lift $ findMentions norm rg trimmedNames
-    display_info $ Info_SearchAbout hits trimmedNames
 
 -- | Explain why something is in scope.
 
