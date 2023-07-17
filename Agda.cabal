@@ -209,15 +209,6 @@ library
       Agda.Compiler.Builtin
       Agda.Compiler.CallCompiler
       Agda.Compiler.Common
-      Agda.Compiler.MAlonzo.Coerce
-      Agda.Compiler.MAlonzo.Compiler
-      Agda.Compiler.MAlonzo.Encode
-      Agda.Compiler.MAlonzo.HaskellTypes
-      Agda.Compiler.MAlonzo.Misc
-      Agda.Compiler.MAlonzo.Pragmas
-      Agda.Compiler.MAlonzo.Pretty
-      Agda.Compiler.MAlonzo.Primitives
-      Agda.Compiler.MAlonzo.Strict
       Agda.Compiler.ToTreeless
       Agda.Compiler.Treeless.AsPatterns
       Agda.Compiler.Treeless.Builtin
