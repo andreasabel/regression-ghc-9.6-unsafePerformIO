@@ -50,7 +50,6 @@ import Agda.TypeChecking.Positivity.Occurrence
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.CompiledClause
 import Agda.TypeChecking.Coverage.SplitTree
-import {-# SOURCE #-} Agda.TypeChecking.CompiledClause.Compile
 import {-# SOURCE #-} Agda.TypeChecking.Polarity
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
 import {-# SOURCE #-} Agda.TypeChecking.Reduce
@@ -614,25 +613,6 @@ applySection' new ptel old ts ScopeCopyInfo{ renNames = rd, renModules = rm } = 
                          , recTel     = apply tel ts'
                          }
                 GeneralizableVar -> return GeneralizableVar
-                _ -> do
-                  (mst, _, cc) <- compileClauses Nothing [cl] -- Andreas, 2012-10-07 non need for record pattern translation
-                  fun          <- emptyFunctionData
-                  let newDef =
-                        set funMacro  (oldDef ^. funMacro) $
-                        set funStatic (oldDef ^. funStatic) $
-                        set funInline True $
-                        FunctionDefn fun
-                        { _funClauses        = [cl]
-                        , _funCompiled       = Just cc
-                        , _funSplitTree      = mst
-                        , _funMutual         = mutual
-                        , _funProjection     = proj
-                        , _funTerminates     = Just True
-                        , _funExtLam         = extlam
-                        , _funWith           = with
-                        }
-                  reportSDoc "tc.mod.apply" 80 $ ("new def for" <+> pretty x) <?> pretty newDef
-                  return newDef
 
             cl = Clause { clauseLHSRange    = getRange $ defClauses d
                         , clauseFullRange   = getRange $ defClauses d

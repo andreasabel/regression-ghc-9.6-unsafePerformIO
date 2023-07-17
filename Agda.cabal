@@ -286,16 +286,13 @@ library
       Agda.Syntax.Translation.ReflectedToAbstract
       Agda.TypeChecking.Abstract
       Agda.TypeChecking.CompiledClause
-      Agda.TypeChecking.CompiledClause.Compile
       Agda.TypeChecking.CompiledClause.Match
       Agda.TypeChecking.Constraints
       Agda.TypeChecking.Conversion
       Agda.TypeChecking.Conversion.Pure
-      Agda.TypeChecking.Coverage
       Agda.TypeChecking.Coverage.Match
       Agda.TypeChecking.Coverage.SplitTree
       Agda.TypeChecking.Coverage.SplitClause
-      Agda.TypeChecking.Coverage.Cubical
       Agda.TypeChecking.Datatypes
       Agda.TypeChecking.DeadCode
       Agda.TypeChecking.DisplayForm
