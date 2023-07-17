@@ -225,21 +225,16 @@ library
       Agda.Compiler.Treeless.Unused
       Agda.ImpossibleTest
       Agda.Interaction.Base
-      Agda.Interaction.BasicOps
-      Agda.Interaction.EmacsCommand
       Agda.Interaction.ExitCode
       Agda.Interaction.FindFile
       Agda.Interaction.Highlighting.Common
-      Agda.Interaction.Highlighting.Emacs
       Agda.Interaction.Highlighting.FromAbstract
       Agda.Interaction.Highlighting.Generate
       Agda.Interaction.Highlighting.Precise
       Agda.Interaction.Highlighting.Range
       Agda.Interaction.Highlighting.Vim
       Agda.Interaction.Imports
-      Agda.Interaction.InteractionTop
       Agda.Interaction.Response
-      Agda.Interaction.MakeCase
       Agda.Interaction.Monad
       Agda.Interaction.Library
       Agda.Interaction.Library.Base

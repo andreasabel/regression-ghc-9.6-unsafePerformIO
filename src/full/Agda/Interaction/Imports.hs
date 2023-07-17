@@ -80,7 +80,6 @@ import qualified Agda.TypeChecking.Monad.Benchmark as Bench
 
 import Agda.TheTypeChecker
 
-import Agda.Interaction.BasicOps ( getGoals, showGoals )
 import Agda.Interaction.FindFile
 import Agda.Interaction.Highlighting.Generate
 import Agda.Interaction.Highlighting.Precise  ( convert )
@@ -1099,14 +1098,6 @@ createInterface mname file isMain msrc = do
 
     setScope scope
     reportSLn "scope.top" 50 $ "SCOPE " ++ show scope
-
-    -- TODO: It would be nice if unsolved things were highlighted
-    -- after every mutual block.
-
-    openMetas           <- getOpenMetas
-    unless (null openMetas) $ do
-      reportSLn "import.metas" 10 "We have unsolved metas."
-      reportSLn "import.metas" 10 =<< showGoals =<< getGoals
 
     ifTopLevelAndHighlightingLevelIs NonInteractive printUnsolvedInfo
 
