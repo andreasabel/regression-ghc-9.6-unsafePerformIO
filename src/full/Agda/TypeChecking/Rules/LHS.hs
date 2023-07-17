@@ -71,7 +71,6 @@ import Agda.TypeChecking.Rules.LHS.Problem
 import Agda.TypeChecking.Rules.LHS.ProblemRest
 import Agda.TypeChecking.Rules.LHS.Unify
 import Agda.TypeChecking.Rules.LHS.Implicit
-import Agda.TypeChecking.Rules.Data
 
 import Agda.Utils.CallStack ( HasCallStack, withCallerCallStack )
 import Agda.Utils.Function

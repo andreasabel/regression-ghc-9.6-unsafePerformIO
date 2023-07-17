@@ -25,7 +25,6 @@ import Agda.TypeChecking.MetaVars.Mention
 import Agda.TypeChecking.Warnings
 
 import Agda.TypeChecking.Irrelevance
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Data ( checkDataSort )
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Term
 import {-# SOURCE #-} Agda.TypeChecking.Conversion
 import {-# SOURCE #-} Agda.TypeChecking.MetaVars

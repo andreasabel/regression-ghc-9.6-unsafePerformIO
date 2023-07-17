@@ -382,7 +382,6 @@ library
       Agda.TypeChecking.Rewriting.NonLinPattern
       Agda.TypeChecking.Rules.Builtin
       Agda.TypeChecking.Rules.Builtin.Coinduction
-      Agda.TypeChecking.Rules.Data
       Agda.TypeChecking.Rules.Display
       Agda.TypeChecking.Rules.LHS
       Agda.TypeChecking.Rules.LHS.Implicit
