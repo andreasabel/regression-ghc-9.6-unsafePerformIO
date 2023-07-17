@@ -52,7 +52,6 @@ import Agda.TypeChecking.CompiledClause
 import Agda.TypeChecking.Coverage.SplitTree
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
 import {-# SOURCE #-} Agda.TypeChecking.Reduce
-import {-# SOURCE #-} Agda.TypeChecking.Opacity
 
 import Agda.Utils.CallStack.Base
 import Agda.Utils.Either
@@ -886,11 +885,6 @@ defaultGetConstInfo st env q = do
         -- Apply the reducibility rules (abstract, opaque) to check
         -- whether the definition should be hidden behind an
         -- 'AbstractDef'.
-        | not (isAccessibleDef env st d{defName = q'}) =
-          case alwaysMakeAbstract d of
-            Just d      -> return $ Right d
-            Nothing     -> return $ Left SigAbstract
-              -- the above can happen since the scope checker is a bit sloppy with 'abstract'
         | otherwise = return $ Right d
         where
           q' = case theDef d of

@@ -72,7 +72,6 @@ import Agda.TypeChecking.Monad.Env (insideDotPattern, isInsideDotPattern, getCur
 
 import Agda.TypeChecking.Patterns.Abstract (expandPatternSynonyms)
 import Agda.TypeChecking.Pretty hiding (pretty, prettyA)
-import Agda.TypeChecking.Opacity
 import Agda.TypeChecking.Warnings
 
 import Agda.Interaction.FindFile (checkModuleName, rootNameModule, SourceFile(SourceFile))
@@ -1371,7 +1370,6 @@ instance ToAbstract (TopLevel [C.Declaration]) where
           -- encountered several (possibly nested) opaque blocks. We
           -- must now ensure that these have transitively-closed
           -- unfolding sets.
-          saturateOpaqueBlocks (outsideDecls ++ [ insideDecl ])
 
           return $ TopLevelInfo (primitiveImport ++ outsideDecls ++ [ insideDecl ]) scope
 

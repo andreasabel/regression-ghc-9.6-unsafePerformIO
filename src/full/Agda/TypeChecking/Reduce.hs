@@ -59,7 +59,6 @@ import {-# SOURCE #-} Agda.TypeChecking.CompiledClause.Match
 import {-# SOURCE #-} Agda.TypeChecking.Patterns.Match
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
 import {-# SOURCE #-} Agda.TypeChecking.Reduce.Fast
-import {-# SOURCE #-} Agda.TypeChecking.Opacity
 
 import Agda.Utils.Functor
 import Agda.Utils.Lens
@@ -695,11 +694,6 @@ reduceHead v = do -- ignoreAbstractMode $ do
     Def f es -> do
 
       abstractMode <- envAbstractMode <$> askTC
-      isAbstract <- not <$> hasAccessibleDef f
-      traceSLn "tc.inj.reduce" 50 (
-        "reduceHead: we are in " ++ show abstractMode++ "; " ++ prettyShow f ++
-        " is treated " ++ if isAbstract then "abstractly" else "concretely"
-        ) $ do
       let v0  = Def f []
           red = liftReduce $ unfoldDefinitionE reduceHead v0 f es
       def <- theDef <$> getConstInfo f
