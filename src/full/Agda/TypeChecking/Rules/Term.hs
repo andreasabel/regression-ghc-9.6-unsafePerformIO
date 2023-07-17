@@ -60,7 +60,6 @@ import Agda.TypeChecking.SizedTypes.Solve
 import Agda.TypeChecking.Sort
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
-import Agda.TypeChecking.Unquote
 import Agda.TypeChecking.Warnings
 
 import {-# SOURCE #-} Agda.TypeChecking.Empty ( ensureEmptyType )
@@ -1151,16 +1150,6 @@ checkExpr' cmp e t =
 
         A.WithApp _ e es -> typeError $ NotImplemented "type checking of with application"
 
-        e0@(A.App i q (Arg ai e))
-          | A.Quote _ <- unScope q, visible ai -> do
-          x <- quotedName $ namedThing e
-          ty <- qNameType
-          coerce cmp (quoteName x) ty t
-
-          | A.QuoteTerm _ <- unScope q -> do
-             (et, _) <- inferExpr (namedThing e)
-             doQuoteTerm cmp et t
-
         A.Quote{}     -> genericError "quote must be applied to a defined name"
         A.QuoteTerm{} -> genericError "quoteTerm must be applied to a term"
         A.Unquote{}   -> genericError "unquote must be applied to a term"
@@ -1305,32 +1294,12 @@ doQuoteTerm cmp et t = do
 
 -- | Unquote a TCM computation in a given hole.
 unquoteM :: A.Expr -> Term -> Type -> TCM ()
-unquoteM tacA hole holeType = do
-  tac <- applyQuantityToJudgement zeroQuantity $
-    checkExpr tacA =<< (el primAgdaTerm --> el (primAgdaTCM <#> primLevelZero <@> primUnit))
-  inFreshModuleIfFreeParams $ unquoteTactic tac hole holeType
+unquoteM tacA hole holeType = return ()
 
 -- | Run a tactic `tac : Term → TC ⊤` in a hole (second argument) of the type
 --   given by the third argument. Runs the continuation if successful.
 unquoteTactic :: Term -> Term -> Type -> TCM ()
-unquoteTactic tac hole goal = do
-  reportSDoc "tc.term.tactic" 40 $ sep
-    [ "Running tactic" <+> prettyTCM tac
-    , nest 2 $ "on" <+> prettyTCM hole <+> ":" <+> prettyTCM goal ]
-  ok  <- runUnquoteM $ unquoteTCM tac hole
-  case ok of
-    Left (BlockedOnMeta oldState blocker) -> do
-      putTC oldState
-      let stripFreshMeta x = maybe neverUnblock (const $ unblockOnMeta x) <$> lookupLocalMeta' x
-      blocker' <- onBlockingMetasM stripFreshMeta blocker
-      r <- case Set.toList $ allBlockingMetas blocker' of
-            x : _ -> getRange <$> lookupLocalMeta' x
-            []    -> return noRange
-      setCurrentRange r $
-        addConstraint blocker' (UnquoteTactic tac hole goal)
-    Left err -> typeError $ UnquoteFailed err
-    Right _ -> return ()
-
+unquoteTactic tac hole goal = return ()
 ---------------------------------------------------------------------------
 -- * Meta variables
 ---------------------------------------------------------------------------

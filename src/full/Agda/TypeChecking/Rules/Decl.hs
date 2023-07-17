@@ -41,7 +41,6 @@ import Agda.TypeChecking.Polarity
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Primitive
 import Agda.TypeChecking.ProjectionLike
-import Agda.TypeChecking.Unquote
 import Agda.TypeChecking.Records
 import Agda.TypeChecking.RecordPatterns
 import Agda.TypeChecking.Reduce
@@ -192,11 +191,9 @@ checkDecl d = setCurrentRange d $ do
       -- are abstract and some are not?  Then allowing all to look into abstract things,
       -- as we do here, will leak information about the implementation of abstract things.
       -- TODO: Benchmarking for unquote.
-      A.UnquoteDecl mi is xs e -> checkMaybeAbstractly is $ checkUnquoteDecl mi is xs e
-      A.UnquoteDef is xs e     -> impossible $ checkMaybeAbstractly is $ checkUnquoteDef is xs e
-      A.UnquoteData is x uc js cs e -> checkMaybeAbstractly (is ++ js) $ do
-        reportSDoc "tc.unquote.data" 20 $ "Checking unquoteDecl data" <+> prettyTCM x
-        Nothing <$ unquoteTop (x:cs) e
+      A.UnquoteDecl mi is xs e -> undefined
+      A.UnquoteDef is xs e     -> undefined
+      A.UnquoteData is x uc js cs e -> undefined
 
     whenNothingM (asksTC envMutualBlock) $ do
 
@@ -319,32 +316,6 @@ revisitRecordPatternTranslation qs = do
       _ -> return Nothing
 
 type FinalChecks = Maybe (TCM ())
-
-checkUnquoteDecl :: Info.MutualInfo -> [A.DefInfo] -> [QName] -> A.Expr -> TCM FinalChecks
-checkUnquoteDecl mi is xs e = do
-  reportSDoc "tc.unquote.decl" 20 $ "Checking unquoteDecl" <+> sep (map prettyTCM xs)
-  Nothing <$ unquoteTop xs e
-
-checkUnquoteDef :: [A.DefInfo] -> [QName] -> A.Expr -> TCM ()
-checkUnquoteDef _ xs e = do
-  reportSDoc "tc.unquote.decl" 20 $ "Checking unquoteDef" <+> sep (map prettyTCM xs)
-  () <$ unquoteTop xs e
-
--- | Run a reflected TCM computatation expected to define a given list of
---   names.
-unquoteTop :: [QName] -> A.Expr -> TCM [QName]
-unquoteTop xs e = do
-  tcm   <- primAgdaTCM
-  unit  <- primUnit
-  lzero <- primLevelZero
-  let vArg = defaultArg
-      hArg = setHiding Hidden . vArg
-  m    <- applyQuantityToJudgement zeroQuantity $
-            checkExpr e $ El (mkType 0) $ apply tcm [hArg lzero, vArg unit]
-  res  <- runUnquoteM $ tell xs >> evalTCM m
-  case res of
-    Left err      -> typeError $ UnquoteFailed err
-    Right (_, xs) -> return xs
 
 -- | Instantiate all metas in 'Definition' associated to 'QName'.
 --   Makes sense after freezing metas. Some checks, like free variable
