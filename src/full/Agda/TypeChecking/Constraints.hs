@@ -25,7 +25,6 @@ import Agda.TypeChecking.MetaVars.Mention
 import Agda.TypeChecking.Warnings
 
 import Agda.TypeChecking.Irrelevance
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Application
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Data ( checkDataSort )
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Term
 import {-# SOURCE #-} Agda.TypeChecking.Conversion
@@ -244,63 +243,10 @@ solveConstraintTCM c = do
       solveConstraint_ c
 
 solveConstraint_ :: Constraint -> TCM ()
-solveConstraint_ (ValueCmp cmp a u v)       = compareAs cmp a u v
-solveConstraint_ (ValueCmpOnFace cmp p a u v) = compareTermOnFace cmp p a u v
-solveConstraint_ (ElimCmp cmp fs a e u v)   = compareElims cmp fs a e u v
-solveConstraint_ (SortCmp cmp s1 s2)        = compareSort cmp s1 s2
-solveConstraint_ (LevelCmp cmp a b)         = compareLevel cmp a b
-solveConstraint_ (IsEmpty r t)              = ensureEmptyType r t
-solveConstraint_ (CheckSizeLtSat t)         = checkSizeLtSat t
-solveConstraint_ (UnquoteTactic tac hole goal) = unquoteTactic tac hole goal
-solveConstraint_ (UnBlock m)                =   -- alwaysUnblock since these have their own unblocking logic (for now)
-  ifM (isFrozen m `or2M` (not <$> asksTC envAssignMetas)) (do
-        reportSDoc "tc.constr.unblock" 15 $ hsep ["not unblocking", prettyTCM m, "because",
-                                                  ifM (isFrozen m) "it's frozen" "meta assignments are turned off"]
-        addConstraint alwaysUnblock $ UnBlock m) $ do
-    inst <- lookupMetaInstantiation m
-    reportSDoc "tc.constr.unblock" 65 $ "unblocking a metavar yields the constraint:" <+> pretty inst
-    case inst of
-      BlockedConst t -> do
-        reportSDoc "tc.constr.blocked" 15 $
-          text ("blocked const " ++ prettyShow m ++ " :=") <+> prettyTCM t
-        assignTerm m [] t
-      PostponedTypeCheckingProblem cl -> enterClosure cl $ \prob -> do
-          tel <- getContextTelescope
-          v   <- liftTCM $ checkTypeCheckingProblem prob
-          assignTerm m (telToArgs tel) v
-      -- Andreas, 2009-02-09, the following were IMPOSSIBLE cases
-      -- somehow they pop up in the context of sized types
-      --
-      -- already solved metavariables: should only happen for size
-      -- metas (not sure why it does, Andreas?)
-      -- Andreas, 2017-07-11:
-      -- I think this is because the size solver instantiates
-      -- some metas with infinity but does not clean up the UnBlock constraints.
-      -- See also issue #2637.
-      -- Ulf, 2018-04-30: The size solver shouldn't touch blocked terms! They have
-      -- a twin meta that it's safe to solve.
-      InstV{} -> __IMPOSSIBLE__
-      -- Open (whatever that means)
-      Open -> __IMPOSSIBLE__
-      OpenInstance -> __IMPOSSIBLE__
-solveConstraint_ (FindInstance m cands) = findInstance m cands
-solveConstraint_ (CheckFunDef i q cs _err) = undefined
-solveConstraint_ (CheckLockedVars a b c d)   = checkLockedVars a b c d
-solveConstraint_ (HasBiggerSort a)      = hasBiggerSort a
-solveConstraint_ (HasPTSRule a b)       = hasPTSRule a b
-solveConstraint_ (CheckDataSort q s)    = checkDataSort q s
-solveConstraint_ (CheckMetaInst m)      = checkMetaInst m
-solveConstraint_ (CheckType t)          = checkType t
-solveConstraint_ (UsableAtModality cc ms mod t) = usableAtModality' ms cc mod t
+solveConstraint_ _ = return ()
 
 checkTypeCheckingProblem :: TypeCheckingProblem -> TCM Term
-checkTypeCheckingProblem = \case
-  CheckExpr cmp e t              -> checkExpr' cmp e t
-  CheckArgs cmp eh r args t0 t1 k -> checkArguments cmp eh r args t0 t1 k
-  CheckProjAppToKnownPrincipalArg cmp e o ds args t k v0 pt patm ->
-    checkProjAppToKnownPrincipalArg cmp e o ds args t k v0 pt patm
-  CheckLambda cmp args body target -> checkPostponedLambda cmp args body target
-  DoQuoteTerm cmp et t           -> doQuoteTerm cmp et t
+checkTypeCheckingProblem _ = undefined
 
 debugConstraints :: TCM ()
 debugConstraints = verboseS "tc.constr" 50 $ do

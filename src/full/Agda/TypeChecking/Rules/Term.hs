@@ -63,7 +63,6 @@ import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Warnings
 
 import {-# SOURCE #-} Agda.TypeChecking.Empty ( ensureEmptyType )
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Application
 
 import Agda.Utils.Function ( applyWhen )
 import Agda.Utils.Functor
@@ -131,22 +130,11 @@ isType_ e = traceCall (IsType_ e) $ do
       --noFunctionsIntoSize t'
       return t'
 
-    -- Prop/(S)Set(ω)ᵢ
-    A.Def' x suffix
-      | Just (sz, u) <- isNameOfUniv x
-      , let n = suffixToLevel suffix
-      -> do
-        univChecks u
-        return . sort $ case sz of
-          USmall -> Univ u $ ClosedLevel n
-          ULarge -> Inf u n
-
     -- Prop/(S)et ℓ
     A.App i s arg
       | visible arg,
         A.Def x <- unScope s,
         Just (USmall, u) <- isNameOfUniv x -> do
-      univChecks u
       unlessM hasUniversePolymorphism $ genericError $
         "Use --universe-polymorphism to enable level arguments to " ++ showUniv u
       -- allow NonStrict variables when checking level
@@ -967,13 +955,7 @@ checkRecordExpression cmp mfs e t = do
       -- are still left out and inserted later by checkArguments_.
       es <- insertMissingFieldsWarn r meta fs cxs
 
-      args <- checkArguments_ cmp ExpandLast re es (recTel def `apply` vs) >>= \case
-        (elims, remainingTel) | null remainingTel
-                              , Just args <- allApplyElims elims -> return args
-        _ -> __IMPOSSIBLE__
-      -- Don't need to block here!
-      reportSDoc "tc.term.rec" 20 $ text $ "finished record expression"
-      return $ Con con ConORec (map Apply args)
+      return $ Con con ConORec undefined
     _ -> typeError $ ShouldBeRecordType t
 
   where
@@ -1188,9 +1170,6 @@ checkExpr' cmp e t =
             (internalError "DontCare may only appear in irrelevant contexts")
 
         A.Dot{} -> genericError "Invalid dotted expression"
-
-        -- Application
-        _   | Application hd args <- appView e -> checkApplication cmp hd args e t
 
       `catchIlltypedPatternBlockedOnMeta` \ (err, x) -> do
         -- We could not check the term because the type of some pattern is blocked.
@@ -1460,17 +1439,7 @@ inferExpr :: A.Expr -> TCM (Term, Type)
 inferExpr = inferExpr' DontExpandLast
 
 inferExpr' :: ExpandHidden -> A.Expr -> TCM (Term, Type)
-inferExpr' exh e = traceCall (InferExpr e) $ do
-  let Application hd args = appView e
-  reportSDoc "tc.infer" 30 $ vcat
-    [ "inferExpr': appView of " <+> prettyA e
-    , "  hd   = " <+> prettyA hd
-    , "  args = " <+> prettyAs args
-    ]
-  reportSDoc "tc.infer" 60 $ vcat
-    [ text $ "  hd (raw) = " ++ show hd
-    ]
-  inferApplication exh hd args e
+inferExpr' exh e = undefined
 
 defOrVar :: A.Expr -> Bool
 defOrVar A.Var{} = True
@@ -1482,11 +1451,7 @@ defOrVar _     = False
 -- | Used to check aliases @f = e@.
 --   Switches off 'ExpandLast' for the checking of top-level application.
 checkDontExpandLast :: Comparison -> A.Expr -> Type -> TCM Term
-checkDontExpandLast cmp e t = case e of
-  _ | Application hd args <- appView e,  defOrVar hd ->
-    traceCall (CheckExprCall cmp e t) $ localScope $ dontExpandLast $ do
-      checkApplication cmp hd args e t
-  _ -> checkExpr' cmp e t -- note that checkExpr always sets ExpandLast
+checkDontExpandLast cmp e t = undefined
 
 -- | Check whether a de Bruijn index is bound by a module telescope.
 isModuleFreeVar :: Int -> TCM Bool

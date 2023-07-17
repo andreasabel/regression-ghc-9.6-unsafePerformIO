@@ -380,7 +380,6 @@ library
       Agda.TypeChecking.Rewriting.Confluence
       Agda.TypeChecking.Rewriting.NonLinMatch
       Agda.TypeChecking.Rewriting.NonLinPattern
-      Agda.TypeChecking.Rules.Application
       Agda.TypeChecking.Rules.Builtin
       Agda.TypeChecking.Rules.Builtin.Coinduction
       Agda.TypeChecking.Rules.Data
