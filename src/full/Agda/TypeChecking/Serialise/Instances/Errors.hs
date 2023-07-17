@@ -14,7 +14,6 @@ import Agda.TypeChecking.Monad.Base
 import Agda.Interaction.Options
 import Agda.Interaction.Options.Warnings
 import Agda.Interaction.Library.Base
-import Agda.Termination.CutOff
 import Agda.Utils.Pretty
 import Agda.Utils.ProfileOptions
 
@@ -533,14 +532,3 @@ instance EmbPrj WarningName where
     99  -> return UnfoldTransparentName_
     100 -> return UselessOpaque_
     _   -> malformed
-
-
-instance EmbPrj CutOff where
-  icod_ = \case
-    DontCutOff -> icodeN' DontCutOff
-    CutOff a -> icodeN 0 CutOff a
-
-  value = vcase valu where
-    valu [] = valuN DontCutOff
-    valu [0,a] = valuN CutOff a
-    valu _ = malformed

@@ -22,7 +22,6 @@ module Agda.Interaction.Options.Base
     , stripRTS
     , defaultOptions
     , defaultInteractionOptions
-    , defaultCutOff
     , defaultPragmaOptions
     , standardOptions_
     , unsafePragmaOptions
@@ -196,8 +195,6 @@ import qualified System.IO.Unsafe as UNSAFE (unsafePerformIO)
 import Text.EditDistance
 import Text.Read                ( readMaybe )
 
-import Agda.Termination.CutOff  ( CutOff(..), defaultCutOff )
-
 import Agda.Interaction.Library ( ExeName, LibName, OptionsPragma(..) )
 import Agda.Interaction.Options.Help
   ( Help(HelpFor, GeneralHelp)
@@ -308,7 +305,7 @@ data PragmaOptions = PragmaOptions
   , _optAllowIncompleteMatch      :: WithDefault 'False
   , _optPositivityCheck           :: WithDefault 'True
   , _optTerminationCheck          :: WithDefault 'True
-  , _optTerminationDepth          :: CutOff
+  , _optTerminationDepth          :: ()
       -- ^ Cut off structural order comparison at some depth in termination checker?
   , _optUniverseCheck             :: WithDefault 'True
   , _optOmegaInOmega              :: WithDefault 'False
@@ -830,7 +827,7 @@ defaultPragmaOptions = PragmaOptions
   , _optAllowIncompleteMatch      = Default
   , _optPositivityCheck           = Default
   , _optTerminationCheck          = Default
-  , _optTerminationDepth          = defaultCutOff
+  , _optTerminationDepth          = ()
   , _optUniverseCheck             = Default
   , _optOmegaInOmega              = Default
   , _optCumulativity              = Default
@@ -1357,11 +1354,7 @@ warningModeFlag s o = case warningModeUpdate s of
   Left err  -> throwError $ prettyWarningModeError err ++ " See --help=warning."
 
 terminationDepthFlag :: String -> Flag PragmaOptions
-terminationDepthFlag s o =
-    do k <- maybe usage return $ readMaybe s
-       when (k < 1) $ usage -- or: turn termination checking off for 0
-       return $ o { _optTerminationDepth = CutOff $ k-1 }
-    where usage = throwError "argument to termination-depth should be >= 1"
+terminationDepthFlag s o = undefined
 
 confluenceCheckFlag :: ConfluenceCheck -> Flag PragmaOptions
 confluenceCheckFlag f o = return $ o { _optConfluenceCheck = Just f }

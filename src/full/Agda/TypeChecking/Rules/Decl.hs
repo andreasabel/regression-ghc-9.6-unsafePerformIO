@@ -61,7 +61,6 @@ import Agda.TypeChecking.Rules.Def     ( checkFunDef, newSection, useTerPragma )
 import Agda.TypeChecking.Rules.Builtin
 import Agda.TypeChecking.Rules.Display ( checkDisplayPragma )
 
-import Agda.Termination.TermCheck
 
 import Agda.Utils.Function ( applyUnless )
 import Agda.Utils.Functor
@@ -266,10 +265,7 @@ mutualChecks mi d ds mid names = do
   -- to skip termination of non-recursive functions.
   modifyAllowedReductions (SmallSet.delete UnconfirmedReductions) $
     checkPositivity_ mi names
-  -- Andreas, 2013-02-27: check termination before injectivity,
-  -- to avoid making the injectivity checker loop.
-  localTC (\ e -> e { envMutualBlock = Just mid }) $
-    checkTermination_ d
+
   revisitRecordPatternTranslation nameList -- Andreas, 2016-11-19 issue #2308
 
   mapM_ checkIApplyConfluence_ nameList
@@ -439,15 +435,6 @@ highlight_ hlmod d = do
       -- We do not need that crap.
       dummy = A.Lit empty $ LitString $
         "do not highlight construct(ed/or) type"
-
--- | Termination check a declaration.
-checkTermination_ :: A.Declaration -> TCM ()
-checkTermination_ d = Bench.billTo [Bench.Termination] $ do
-  reportSLn "tc.decl" 20 $ "checkDecl: checking termination..."
-  -- If there are some termination errors, we throw a warning.
-  -- The termination checker already marked non-terminating functions as such.
-  unlessNullM (termDecl d) $ \ termErrs -> do
-    warning $ TerminationIssue termErrs
 
 -- | Check a set of mutual names for positivity.
 checkPositivity_ :: Info.MutualInfo -> Set QName -> TCM ()
