@@ -37,7 +37,6 @@ import qualified Agda.TypeChecking.SyntacticEquality as SynEq
 import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Constraints
 import Agda.TypeChecking.Conversion.Pure (pureCompareAs, runPureConversion)
-import Agda.TypeChecking.Forcing (isForced, nextIsForced)
 import Agda.TypeChecking.Free
 import Agda.TypeChecking.Datatypes (getConType, getFullyAppliedConType)
 import Agda.TypeChecking.Records
@@ -842,7 +841,7 @@ compareElims pols0 fors0 a v els01 els02 =
         , "arg2 =" <+> pretty arg2
         ]
       let (pol, pols) = undefined
-          (for, fors) = nextIsForced fors0
+          (for, fors) = undefined
       a <- abortIfBlocked a
       reportSLn "tc.conv.elim" 40 $ "type is not blocked"
       case unEl a of
@@ -863,9 +862,7 @@ compareElims pols0 fors0 a v els01 els02 =
 
           -- compare arg1 and arg2
           pid <- newProblem_ $ applyModalityToContext info $
-              if isForced for then
-                reportSLn "tc.conv.elim" 40 $ "argument is forced"
-              else if isIrrelevant info then do
+              if isIrrelevant info then do
                 reportSLn "tc.conv.elim" 40 $ "argument is irrelevant"
                 compareIrrelevant b (unArg arg1) (unArg arg2)
               else do

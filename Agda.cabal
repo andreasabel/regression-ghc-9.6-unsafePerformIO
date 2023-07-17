@@ -296,13 +296,11 @@ library
       Agda.TypeChecking.DeadCode
       Agda.TypeChecking.DisplayForm
       Agda.TypeChecking.DropArgs
-      Agda.TypeChecking.EtaExpand
       Agda.TypeChecking.Errors
       Agda.TypeChecking.Free
       Agda.TypeChecking.Free.Lazy
       Agda.TypeChecking.Free.Precompute
       Agda.TypeChecking.Free.Reduce
-      Agda.TypeChecking.Forcing
       Agda.TypeChecking.Functions
       Agda.TypeChecking.Implicit
       Agda.TypeChecking.Injectivity
