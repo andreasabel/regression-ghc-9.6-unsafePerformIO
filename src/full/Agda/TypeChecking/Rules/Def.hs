@@ -57,7 +57,6 @@ import Agda.TypeChecking.Sort
 
 import Agda.TypeChecking.Rules.Term
 import Agda.TypeChecking.Rules.LHS                 ( checkLeftHandSide, LHSResult(..), bindAsPatterns )
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Decl ( checkDecls )
 
 import Agda.Utils.Functor
 import Agda.Utils.Lens
@@ -1233,7 +1232,6 @@ checkWhere wh@(A.WhereDecls whmod whNamed ds) ret = do
       -- [A.ScopedDecl scope ds] -> withScope_ scope $ loop ds  -- IMPOSSIBLE
       Just (A.Section _ e m tel ds) -> newSection e m tel $ do
           localTC (\ e -> e { envCheckingWhere = True }) $ do
-            checkDecls ds
             ret
       _ -> __IMPOSSIBLE__
 

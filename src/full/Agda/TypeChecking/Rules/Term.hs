@@ -64,7 +64,6 @@ import Agda.TypeChecking.Warnings
 
 import {-# SOURCE #-} Agda.TypeChecking.Empty ( ensureEmptyType )
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Def (checkFunDef', useTerPragma)
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Decl (checkSectionApplication)
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Application
 
 import Agda.Utils.Function ( applyWhen )
@@ -1640,12 +1639,6 @@ checkLetBinding (A.LetApply i erased x modapp copyInfo dir) ret = do
     , "module  =" <+> (prettyTCM =<< currentModule)
     , "fv      =" <+> text (show fv)
     ]
-  checkSectionApplication i erased x modapp copyInfo
-    -- Some other part of the code ensures that "open public" is
-    -- ignored in let expressions. Thus there is no need for
-    -- checkSectionApplication to throw an error if the import
-    -- directive does contain "open public".
-    dir{ publicOpen = Nothing }
   withAnonymousModule x new ret
 -- LetOpen and LetDeclaredVariable are only used for highlighting.
 checkLetBinding A.LetOpen{} ret = ret

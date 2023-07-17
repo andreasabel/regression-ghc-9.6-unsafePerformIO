@@ -37,7 +37,6 @@ import Agda.TypeChecking.Rules.Data
   , defineCompData, defineKanOperationForFields
   )
 import Agda.TypeChecking.Rules.Term ( isType_ )
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Decl (checkDecl)
 
 import Agda.Utils.Boolean
 import Agda.Utils.Function ( applyWhen )
@@ -800,5 +799,4 @@ checkRecordProjections m r hasNamedCon con tel ftel fs = do
 
     -- Case: definition.
     checkProjs ftel1 ftel2 vs (d : fs) = do
-      checkDecl d
       checkProjs ftel1 ftel2 vs fs

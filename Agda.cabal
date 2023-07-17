@@ -384,7 +384,6 @@ library
       Agda.TypeChecking.Rules.Builtin
       Agda.TypeChecking.Rules.Builtin.Coinduction
       Agda.TypeChecking.Rules.Data
-      Agda.TypeChecking.Rules.Decl
       Agda.TypeChecking.Rules.Def
       Agda.TypeChecking.Rules.Display
       Agda.TypeChecking.Rules.LHS
