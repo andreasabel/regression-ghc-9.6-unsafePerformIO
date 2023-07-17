@@ -71,7 +71,6 @@ import Agda.TypeChecking.Reduce
 import {-# SOURCE #-} Agda.TypeChecking.MetaVars
 import {-# SOURCE #-} Agda.TypeChecking.Conversion
 import Agda.TypeChecking.Pretty
-import Agda.TypeChecking.Polarity
 import Agda.TypeChecking.Warnings
 
 import Agda.Interaction.Options
@@ -404,95 +403,7 @@ useInjectivity dir blocker ty blk neu = locallyTC eInjectivityDepth succ $ do
 invertFunction
   :: MonadConversion m
   => Comparison -> Term -> InvView -> TermHead -> m () -> m () -> (Term -> m ()) -> m ()
-invertFunction _ _ NoInv _ fallback _ _ = fallback
-invertFunction cmp blk (Inv f blkArgs hdMap) hd fallback err success = do
-    fTy <- defType <$> getConstInfo f
-    reportSDoc "tc.inj.use" 20 $ vcat
-      [ "inverting injective function" <?> hsep [prettyTCM f, ":", prettyTCM fTy]
-      , "for" <?> pretty hd
-      , nest 2 $ "args =" <+> prettyList (map prettyTCM blkArgs)
-      ]                         -- Clauses with unknown heads are also possible candidates
-    case fromMaybe [] $ Map.lookup hd hdMap <> Map.lookup UnknownHead hdMap of
-      [] -> err
-      _:_:_ -> fallback
-      [cl@Clause{ clauseTel  = tel }] -> speculateMetas fallback $ do
-          let ps   = clausePats cl
-              perm = fromMaybe __IMPOSSIBLE__ $ clausePerm cl
-          -- These are what dot patterns should be instantiated at
-          ms <- map unArg <$> newTelMeta tel
-          reportSDoc "tc.inj.invert" 20 $ vcat
-            [ "meta patterns" <+> prettyList (map prettyTCM ms)
-            , "  perm =" <+> text (show perm)
-            , "  tel  =" <+> prettyTCM tel
-            , "  ps   =" <+> prettyList (map (text . show) ps)
-            ]
-          -- and this is the order the variables occur in the patterns
-          let msAux = permute (invertP __IMPOSSIBLE__ $ compactP perm) ms
-          let sub   = parallelS (reverse ms)
-          margs <- runReaderT (evalStateT (mapM metaElim ps) msAux) sub
-          reportSDoc "tc.inj.invert" 20 $ vcat
-            [ "inversion"
-            , nest 2 $ vcat
-              [ "lhs  =" <+> prettyTCM margs
-              , "rhs  =" <+> prettyTCM blkArgs
-              , "type =" <+> prettyTCM fTy
-              ]
-            ]
-          -- Since we do not care for the value of non-variant metas here,
-          -- we can treat 'Nonvariant' as 'Invariant'.
-          -- That ensures these metas do not remain unsolved.
-          pol <- purgeNonvariant <$> getPolarity' cmp f
-          fs  <- getForcedArgs f
-          -- The clause might not give as many patterns as there
-          -- are arguments (point-free style definitions).
-          let blkArgs' = take (length margs) blkArgs
-          compareElims pol fs fTy (Def f []) margs blkArgs'
-
-          -- Check that we made progress.
-          r <- liftReduce $ unfoldDefinitionStep (Def f []) f blkArgs
-          case r of
-            YesReduction _ blk' -> do
-              reportSDoc "tc.inj.invert.success" 20 $ hsep ["Successful inversion of", prettyTCM f, "at", pretty hd]
-              KeepMetas <$ success blk'
-            NoReduction{}       -> do
-              reportSDoc "tc.inj.invert" 30 $ vcat
-                [ "aborting inversion;" <+> prettyTCM blk
-                , "does not reduce"
-                ]
-              return RollBackMetas
-  where
-    nextMeta :: (MonadState [Term] m, MonadFail m) => m Term
-    nextMeta = do
-      m : ms <- get
-      put ms
-      return m
-
-    dotP :: MonadReader Substitution m => Term -> m Term
-    dotP v = do
-      sub <- ask
-      return $ applySubst sub v
-
-    metaElim
-      :: (MonadState [Term] m, MonadReader Substitution m, HasConstInfo m, MonadFail m)
-      => Arg DeBruijnPattern -> m Elim
-    metaElim (Arg _ (ProjP o p))  = Proj o <$> getOriginalProjection p
-    metaElim (Arg info p)         = Apply . Arg info <$> metaPat p
-
-    metaArgs
-      :: (MonadState [Term] m, MonadReader Substitution m, MonadFail m)
-      => [NamedArg DeBruijnPattern] -> m Args
-    metaArgs args = mapM (traverse $ metaPat . namedThing) args
-
-    metaPat
-      :: (MonadState [Term] m, MonadReader Substitution m, MonadFail m)
-      => DeBruijnPattern -> m Term
-    metaPat (DotP _ v)       = dotP v
-    metaPat (VarP _ _)       = nextMeta
-    metaPat (IApplyP{})      = nextMeta
-    metaPat (ConP c mt args) = Con c (fromConPatternInfo mt) . map Apply <$> metaArgs args
-    metaPat (DefP o q args)  = Def q . map Apply <$> metaArgs args
-    metaPat (LitP _ l)       = return $ Lit l
-    metaPat ProjP{}          = __IMPOSSIBLE__
+invertFunction _ _ _ _ fallback _ _ = fallback
 
 forcePiUsingInjectivity :: Type -> TCM Type
 forcePiUsingInjectivity t = reduceB t >>= \ case

@@ -43,7 +43,6 @@ import Agda.TypeChecking.Datatypes (getConType, getFullyAppliedConType)
 import Agda.TypeChecking.Records
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Injectivity
-import Agda.TypeChecking.Polarity
 import Agda.TypeChecking.Level
 import Agda.TypeChecking.Implicit (implicitArgs)
 import Agda.TypeChecking.Irrelevance
@@ -902,7 +901,7 @@ compareElims pols0 fors0 a v els01 els02 =
     (e@(IApply x1 y1 r1) : els1, IApply x2 y2 r2 : els2) -> do
       reportSDoc "tc.conv.elim" 25 $ "compareElims IApply"
        -- Andrea: copying stuff from the Apply case..
-      let (pol, pols) = nextPolarity pols0
+      let (pol, pols) = undefined
       a  <- abortIfBlocked a
       va <- pathView a
       reportSDoc "tc.conv.elim.iapply" 60 $ "compareElims IApply" $$ do
@@ -938,7 +937,7 @@ compareElims pols0 fors0 a v els01 els02 =
         , "arg1 =" <+> pretty arg1
         , "arg2 =" <+> pretty arg2
         ]
-      let (pol, pols) = nextPolarity pols0
+      let (pol, pols) = undefined
           (for, fors) = nextIsForced fors0
       a <- abortIfBlocked a
       reportSLn "tc.conv.elim" 40 $ "type is not blocked"
@@ -966,7 +965,7 @@ compareElims pols0 fors0 a v els01 els02 =
                 reportSLn "tc.conv.elim" 40 $ "argument is irrelevant"
                 compareIrrelevant b (unArg arg1) (unArg arg2)
               else do
-                reportSLn "tc.conv.elim" 40 $ "argument has polarity " ++ show pol
+                reportSLn "tc.conv.elim" 40 $ "argument has polarity "
                 compareWithPol pol (flip compareTerm b)
                   (unArg arg1) (unArg arg2)
           -- if comparison got stuck and function type is dependent, block arg

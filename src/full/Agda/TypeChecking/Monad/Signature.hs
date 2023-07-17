@@ -50,7 +50,6 @@ import Agda.TypeChecking.Positivity.Occurrence
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.CompiledClause
 import Agda.TypeChecking.Coverage.SplitTree
-import {-# SOURCE #-} Agda.TypeChecking.Polarity
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
 import {-# SOURCE #-} Agda.TypeChecking.Reduce
 import {-# SOURCE #-} Agda.TypeChecking.Opacity
@@ -463,7 +462,7 @@ applySection' new ptel old ts ScopeCopyInfo{ renNames = rd, renModules = rm } = 
     ]
   _ <- Map.traverseWithKey (traverse . copyDef ts) rd
   _ <- Map.traverseWithKey (traverse . copySec ts) rm
-  computePolarity (Map.elems rd >>= List1.toList)
+  return ()
   where
     -- Andreas, 2013-10-29
     -- Here, if the name x is not imported, it persists as
@@ -945,8 +944,7 @@ getPolarity q = defPolarity <$> getConstInfo q
 -- | Look up polarity of a definition and compose with polarity
 --   represented by 'Comparison'.
 getPolarity' :: HasConstInfo m => Comparison -> QName -> m [Polarity]
-getPolarity' CmpEq  q = map (composePol Invariant) <$> getPolarity q -- return []
-getPolarity' CmpLeq q = getPolarity q -- composition with Covariant is identity
+getPolarity' _ q = getPolarity q -- composition with Covariant is identity
 
 -- | Set the polarity of a definition.
 setPolarity :: (MonadTCState m, MonadDebug m) => QName -> [Polarity] -> m ()
