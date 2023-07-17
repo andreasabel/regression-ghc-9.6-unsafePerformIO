@@ -27,7 +27,6 @@ import Agda.TypeChecking.Warnings
 import Agda.TypeChecking.Irrelevance
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Application
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Data ( checkDataSort )
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Def
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Term
 import {-# SOURCE #-} Agda.TypeChecking.Conversion
 import {-# SOURCE #-} Agda.TypeChecking.MetaVars
@@ -285,10 +284,7 @@ solveConstraint_ (UnBlock m)                =   -- alwaysUnblock since these hav
       Open -> __IMPOSSIBLE__
       OpenInstance -> __IMPOSSIBLE__
 solveConstraint_ (FindInstance m cands) = findInstance m cands
-solveConstraint_ (CheckFunDef i q cs _err) = withoutCache $
-  -- re #3498: checking a fundef would normally be cached, but here it's
-  -- happening out of order so it would only corrupt the caching log.
-  checkFunDef i q cs
+solveConstraint_ (CheckFunDef i q cs _err) = undefined
 solveConstraint_ (CheckLockedVars a b c d)   = checkLockedVars a b c d
 solveConstraint_ (HasBiggerSort a)      = hasBiggerSort a
 solveConstraint_ (HasPTSRule a b)       = hasPTSRule a b

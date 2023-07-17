@@ -63,7 +63,6 @@ import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Warnings
 
 import {-# SOURCE #-} Agda.TypeChecking.Empty ( ensureEmptyType )
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Def (checkFunDef', useTerPragma)
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Application
 
 import Agda.Utils.Function ( applyWhen )
@@ -779,14 +778,7 @@ checkExtendedLambda cmp i di erased qname cs e t = do
      abstract (A.defAbstract di) $ do
        -- Andreas, 2013-12-28: add extendedlambda as @Function@, not as @Axiom@;
        -- otherwise, @addClause@ in @checkFunDef'@ fails (see issue 1009).
-       addConstant qname =<< do
-         lang <- getLanguage
-         fun  <- emptyFunction
-         useTerPragma $
-           (defaultDefn info qname t lang fun)
-             { defMutual = j }
-       checkFunDef' t info (Just $ ExtLamInfo lamMod False empty) Nothing di qname $
-         List1.toList cs
+
        whenNothingM (asksTC envMutualBlock) $
          -- Andrea 10-03-2018: Should other checks be performed here too? e.g. termination/positivity/..
          checkIApplyConfluence_ qname
