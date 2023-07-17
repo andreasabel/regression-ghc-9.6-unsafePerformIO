@@ -36,7 +36,6 @@ import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Warnings
 import {-# SOURCE #-} Agda.TypeChecking.Primitive.Cubical.Base (isCubicalSubtype)
 
-import {-# SOURCE #-} Agda.TypeChecking.ProjectionLike (eligibleForProjectionLike)
 
 import Agda.Utils.Either
 import Agda.Utils.Empty
@@ -329,16 +328,7 @@ getDefType f t = do
           -- If it is stuck due to disabled reductions
           -- (because of failed termination check),
           -- we will produce garbage parameters.
-          ifNotM (eligibleForProjectionLike d) failNotElig $ {- else -} do
-            -- now we know it is reduced, we can safely take the parameters
-            let pars = fromMaybe __IMPOSSIBLE__ $ allApplyElims $ take npars es
-            reportSDoc "tc.deftype" 20 $ vcat
-              [ text $ "head d     = " ++ prettyShow d
-              , "parameters =" <+> sep (map prettyTCM pars)
-              ]
-            reportSDoc "tc.deftype" 60 $ "parameters = " <+> pretty pars
-            if length pars < npars then failure "does not supply enough parameters"
-            else Just <$> a `piApplyM` pars
+          failNotElig
         _ -> failNotDef
   where
     failNotElig = failure "is not eligible for projection-likeness"

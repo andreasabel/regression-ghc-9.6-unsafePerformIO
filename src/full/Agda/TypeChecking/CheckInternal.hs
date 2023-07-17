@@ -27,7 +27,6 @@ import Agda.TypeChecking.Level
 import Agda.TypeChecking.Modalities (checkModalityArgs)
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Pretty
-import Agda.TypeChecking.ProjectionLike (elimView, ProjEliminator(..))
 import Agda.TypeChecking.Records (shouldBeProjectible)
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
@@ -76,7 +75,7 @@ defaultAction = Action
   { preAction       = \ _ -> return
   , postAction      = \ _ -> return
   , modalityAction  = \ _ -> id
-  , elimViewAction  = elimView EvenLone
+  , elimViewAction  = return
   }
 
 eraseUnusedAction :: Action TCM

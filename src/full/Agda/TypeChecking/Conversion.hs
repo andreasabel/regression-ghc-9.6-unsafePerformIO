@@ -50,7 +50,6 @@ import Agda.TypeChecking.Level
 import Agda.TypeChecking.Implicit (implicitArgs)
 import Agda.TypeChecking.Irrelevance
 import Agda.TypeChecking.Primitive
-import Agda.TypeChecking.ProjectionLike
 import Agda.TypeChecking.Warnings (MonadWarning)
 import Agda.Interaction.Options
 
@@ -463,8 +462,7 @@ compareAtomDir dir a = dirToCmp (`compareAtom` a) dir
 -- | Compute the head type of an elimination. For projection-like functions
 --   this requires inferring the type of the principal argument.
 computeElimHeadType :: MonadConversion m => QName -> Elims -> Elims -> m Type
-computeElimHeadType f [] es' = computeDefType f es'
-computeElimHeadType f es _   = computeDefType f es
+computeElimHeadType f es _   = undefined
 
 -- | Syntax directed equality on atomic values
 --

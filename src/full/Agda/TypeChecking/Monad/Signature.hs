@@ -53,7 +53,6 @@ import Agda.TypeChecking.Coverage.SplitTree
 import {-# SOURCE #-} Agda.TypeChecking.CompiledClause.Compile
 import {-# SOURCE #-} Agda.TypeChecking.Polarity
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
-import {-# SOURCE #-} Agda.TypeChecking.ProjectionLike
 import {-# SOURCE #-} Agda.TypeChecking.Reduce
 import {-# SOURCE #-} Agda.TypeChecking.Opacity
 
@@ -516,7 +515,6 @@ applySection' new ptel old ts ScopeCopyInfo{ renNames = rd, renModules = rm } = 
           reportSDoc "tc.mod.apply" 80 $
             "new type = " <+> pretty t
           addConstant y =<< nd y
-          makeProjection y
           -- Issue1238: the copied def should be an 'instance' if the original
           -- def is one. Skip constructors since the original constructor will
           -- still work as an instance.

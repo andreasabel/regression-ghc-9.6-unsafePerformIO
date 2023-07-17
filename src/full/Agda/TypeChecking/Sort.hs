@@ -47,7 +47,6 @@ import Agda.TypeChecking.Monad.Pure
 import Agda.TypeChecking.Monad.Signature (HasConstInfo(..), applyDef)
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Records (getDefType)
-import Agda.TypeChecking.ProjectionLike
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
@@ -199,72 +198,7 @@ shouldBeSort t = ifIsSort t return (typeError $ ShouldBeASort t)
 sortOf
   :: forall m. (PureTCM m, MonadBlock m,MonadConstraint m)
   => Term -> m Sort
-sortOf t = do
-  reportSDoc "tc.sort" 60 $ "sortOf" <+> prettyTCM t
-  sortOfT =<< elimView EvenLone t
-
-  where
-    sortOfT :: Term -> m Sort
-    sortOfT = \case
-      Pi adom b -> do
-        let a = unEl $ unDom adom
-        sa <- sortOf a
-        sb <- mapAbstraction adom (sortOf . unEl) b
-        inferPiSort (adom $> El sa a) sb
-      Sort s     -> return $ univSort s
-      Var i es   -> do
-        a <- typeOfBV i
-        sortOfE a (Var i) es
-      Def f es   -> do
-        a <- defType <$> getConstInfo f
-        sortOfE a (Def f) es
-      MetaV x es -> do
-        a <- metaType x
-        sortOfE a (MetaV x) es
-      Lam{}      -> __IMPOSSIBLE__
-      Con{}      -> __IMPOSSIBLE__
-      Lit{}      -> __IMPOSSIBLE__
-      Level{}    -> __IMPOSSIBLE__
-      DontCare{} -> __IMPOSSIBLE__
-      Dummy s _  -> __IMPOSSIBLE_VERBOSE__ s
-
-    sortOfE :: Type -> (Elims -> Term) -> Elims -> m Sort
-    sortOfE a hd []     = ifIsSort a return __IMPOSSIBLE__
-    sortOfE a hd (e:es) = do
-      reportSDoc "tc.sort" 50 $ vcat
-        [ "sortOfE"
-        , "  a  = " <+> prettyTCM a
-        , "  hd = " <+> prettyTCM (hd [])
-        , "  e  = " <+> prettyTCM e
-        ]
-
-      ba <- reduceB a
-
-      let
-        a' = ignoreBlocking ba
-        fallback = case ba of
-          Blocked m _ -> patternViolation m
-
-          -- Not IMPOSSIBLE because of possible non-confluent rewriting (see #5531)
-          _ -> ifM (optRewriting <$> pragmaOptions)
-            {-then-} (patternViolation neverUnblock)
-            {-else-} __IMPOSSIBLE__
-
-      case e of
-        Apply (Arg ai v) -> case unEl a' of
-          Pi b c -> sortOfE (c `absApp` v) (hd . (e:)) es
-          _ -> fallback
-
-        Proj o f -> case unEl a' of
-          Def{} -> do
-            ~(El _ (Pi b c)) <- fromMaybe __IMPOSSIBLE__ <$> getDefType f a'
-            hd' <- applyE <$> applyDef o f (argFromDom b $> hd [])
-            sortOfE (c `absApp` (hd [])) hd' es
-          _ -> fallback
-
-        IApply x y r -> do
-          (b , c) <- fromMaybe __IMPOSSIBLE__ <$> isPath a'
-          sortOfE (c `absApp` r) (hd . (e:)) es
+sortOf t = undefined
 
 -- | Reconstruct the minimal sort of a type (ignoring the sort annotation).
 sortOfType

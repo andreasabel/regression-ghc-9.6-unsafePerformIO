@@ -41,7 +41,6 @@ import Agda.TypeChecking.Free
 import Agda.TypeChecking.Free.Lazy
 import Agda.TypeChecking.Free.Reduce
 import Agda.TypeChecking.Level
-import Agda.TypeChecking.ProjectionLike
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Datatypes
 import Agda.TypeChecking.Records
@@ -454,100 +453,7 @@ occursCheck m xs v = Bench.billTo [ Bench.Typing, Bench.OccursCheck ] $ do
       _ -> throwError err
 
 instance Occurs Term where
-  occurs v = do
-    vb  <- unfoldB v
-    let block = getBlocker vb
-        -- On a failure, we should retry when any meta that is blocking
-        -- the term is solved.
-        flexIfBlocked = if
-          -- In the metavariable case we should not yet become flexible
-          -- because otherwise pruning won't fire.
-          | MetaV{} <- ignoreBlocking vb -> addOrUnblocker block
-          | block /= neverUnblock -> flexibly . addOrUnblocker block
-          -- Re #3594, do not fail hard when Underapplied:
-          -- the occurrence could be computed away after eta expansion.
-          | NotBlocked{blockingStatus = Underapplied} <- vb -> flexibly
-          | otherwise -> id
-    v <- reduceProjectionLike $ ignoreBlocking vb
-    flexIfBlocked $ do
-        ctx <- ask
-        let m = occMeta . feExtra $ ctx
-        reportSDoc "tc.meta.occurs" 45 $
-          text ("occursCheck " ++ prettyShow m ++ " (" ++ show (feFlexRig ctx) ++ ") of ") <+> prettyTCM v
-        reportSDoc "tc.meta.occurs" 70 $
-          nest 2 $ pretty v
-        case v of
-          Var i es   -> do
-            allowed <- getAll . ($ unitModality) <$> variable i
-            if allowed then Var i <$> weakly (occurs es) else do
-              -- if the offending variable is of singleton type,
-              -- eta-expand it away
-              reportSDoc "tc.meta.occurs" 35 $ "offending variable: " <+> prettyTCM (var i)
-              t <-  typeOfBV i
-              reportSDoc "tc.meta.occurs" 35 $ nest 2 $ "of type " <+> prettyTCM t
-              isST <- typeLevelReductions $ isSingletonType t
-              reportSDoc "tc.meta.occurs" 35 $ nest 2 $ "(after singleton test)"
-              case isST of
-                -- not a singleton type
-                Nothing ->
-                  -- #4480: Only hard fail if the variable is not in scope. Wrong modality/relevance
-                  -- could potentially be salvaged by eta expansion.
-                  ifM (($ i) <$> allowedVars) -- vv TODO: neverUnblock is not correct! What could trigger this eta expansion though?
-                      (patternViolation' neverUnblock 70 $ "Disallowed var " ++ show i ++ " due to modality/relevance")
-                      (strongly $ abort neverUnblock $ MetaCannotDependOn m i)
-                -- is a singleton type with unique inhabitant sv
-                (Just sv) -> return $ sv `applyE` es
-          Lam h f     -> do
-            Lam h <$> occurs f
-          Level l     -> Level <$> occurs_ l
-          Lit l       -> return v
-          Dummy{}     -> return v
-          DontCare v  -> dontCare <$> do
-            onlyReduceTypes $ underRelevance Irrelevant $ occurs v
-          Def d es    -> do
-            definitionCheck d
-            Def d <$> occDef d es
-          Con c ci vs -> do
-            definitionCheck (conName c)
-            Con c ci <$> conArgs vs (occurs vs)  -- if strongly rigid, remain so, except with unreduced IApply arguments.
-          Pi a b      -> Pi <$> occurs_ a <*> occurs b
-          Sort s      -> Sort <$> do underRelevance NonStrict $ occurs_ s
-          MetaV m' es -> do
-            m' <- metaCheck m'
-            -- The arguments of a meta are in a flexible position
-            (MetaV m' <$> do flexibly $ occurs es) `catchError` \ err -> do
-                ctx <- ask
-                reportSDoc "tc.meta.kill" 25 $ vcat
-                  [ text $ "error during flexible occurs check, we are " ++ show (ctx ^. lensFlexRig)
-                  , text $ show err
-                  ]
-                case err of
-                  -- On pattern violations try to remove offending
-                  -- flexible occurrences (if not already in a flexible context)
-                  PatternErr{} | not (isFlexible ctx) -> do
-                    reportSLn "tc.meta.kill" 20 $
-                      "oops, pattern violation for " ++ prettyShow m'
-                    -- Andreas, 2014-03-02, see issue 1070:
-                    -- Do not prune when meta is projected!
-                    caseMaybe (allApplyElims es) (throwError err) $ \ vs -> do
-                      killResult <- lift . prune m' vs =<< allowedVars
-                      if (killResult == PrunedEverything) then do
-                        -- after successful pruning, restart occurs check
-                        reportSDoc "tc.meta.prune" 40 $ "Pruned everything"
-                        v' <- instantiate (MetaV m' es)
-                        occurs v'
-                      else throwError err
-                  _ -> throwError err
-          where
-            -- a data or record type constructor propagates strong occurrences
-            -- since e.g. x = List x is unsolvable
-            occDef d vs = do
-              m   <- asks (occMeta . feExtra)
-              lift $ metaOccurs m d
-              ifM (liftTCM $ isJust <$> isDataOrRecordType d)
-                {-then-} (occurs vs)
-                {-else-} (defArgs $ occurs vs)
-
+  occurs v = undefined
   metaOccurs m v = do
     v <- instantiate v
     case v of

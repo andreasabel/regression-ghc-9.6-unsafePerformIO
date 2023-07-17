@@ -15,7 +15,6 @@ import Agda.Syntax.Internal.Generic
 
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.CheckInternal
-import Agda.TypeChecking.ProjectionLike
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Telescope
@@ -88,19 +87,6 @@ reconstruct ty v = do
         -- If the constructor is underapplied, we need to escape from the telescope.
         let escape = applySubst $ strengthenS __IMPOSSIBLE__ $ size tel
         return $ Con hh ci $ map Apply (escape pars) ++ vs
-      Def f es -> projView v >>= \case
-        ProjectionView _f a es -> do
-          recTy <- infer =<< dropParameters (unArg a)
-          pars <- extractParameters f recTy
-          loop ty (Def f . (map Apply pars ++) . (Apply a:)) es
-        LoneProjectionLike _f i -> reduce (unEl ty) >>= \case
-          Pi recTy _ -> do
-            pars <- extractParameters f (unDom recTy)
-            return $ Def f $ map Apply pars
-          _ -> __IMPOSSIBLE__
-        NoProjection{} -> do
-          ty <- defType <$> getConstInfo f
-          loop ty (Def f) es
       Var i es -> do
         ty <- typeOfBV i
         loop ty (Var i) es
