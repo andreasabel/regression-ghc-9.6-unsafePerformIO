@@ -38,7 +38,6 @@ import Agda.TypeChecking.Coverage.SplitClause
 
 import Agda.TypeChecking.Conversion (tryConversion, equalType)
 import Agda.TypeChecking.Datatypes (getConForm, getDatatypeArgs)
-import {-# SOURCE #-} Agda.TypeChecking.Empty ( checkEmptyTel, isEmptyTel, isEmptyType )
 import Agda.TypeChecking.Irrelevance
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Substitute

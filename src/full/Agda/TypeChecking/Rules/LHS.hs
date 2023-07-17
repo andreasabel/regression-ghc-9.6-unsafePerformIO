@@ -56,7 +56,6 @@ import Agda.TypeChecking.Irrelevance
 -- (DontKnow is one of the constructors of ErrorNonEmpty *and* UnifactionResult').
 -- We can't explicitly hide just the constructor here because it isn't in the
 -- hs-boot file.
-import {-# SOURCE #-} Agda.TypeChecking.Empty (ensureEmptyType)
 import Agda.TypeChecking.Patterns.Abstract
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Records hiding (getRecordConstructor)
@@ -406,7 +405,7 @@ checkDotPattern (Dot e v (Dom{domInfo = info, unDom = a})) =
     equalTerm a u v
 
 checkAbsurdPattern :: AbsurdPattern -> TCM ()
-checkAbsurdPattern (Absurd r a) = ensureEmptyType r a
+checkAbsurdPattern (Absurd r a) = return ()
 
 checkAnnotationPattern :: AnnotationPattern -> TCM ()
 checkAnnotationPattern (Ann t a) = do

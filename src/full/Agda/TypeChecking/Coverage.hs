@@ -53,7 +53,6 @@ import Agda.TypeChecking.Coverage.Cubical
 
 import Agda.TypeChecking.Conversion (tryConversion, equalType)
 import Agda.TypeChecking.Datatypes (getConForm)
-import {-# SOURCE #-} Agda.TypeChecking.Empty ( checkEmptyTel, isEmptyTel, isEmptyType )
 import Agda.TypeChecking.Irrelevance
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Substitute
@@ -101,155 +100,7 @@ coverageCheck
   -> Type      -- ^ Absolute type (including the full parameter telescope).
   -> [Clause]  -- ^ Clauses of @f@.  These are the very clauses of @f@ in the signature.
   -> TCM SplitTree
-coverageCheck f t cs = do
-  reportSLn "tc.cover.top" 30 $ "entering coverageCheck for " ++ prettyShow f
-  reportSDoc "tc.cover.top" 75 $ "  of type (raw): " <+> (text . prettyShow) t
-  reportSDoc "tc.cover.top" 45 $ "  of type: " <+> prettyTCM t
-  TelV gamma a <- telViewUpTo (-1) t
-  reportSLn "tc.cover.top" 30 $ "coverageCheck: computed telView"
-
-  let -- n             = arity
-      -- xs            = variable patterns fitting lgamma
-      n            = size gamma
-      xs           =  map (setOrigin Inserted) $ teleNamedArgs gamma
-
-  reportSLn "tc.cover.top" 30 $ "coverageCheck: getDefFreeVars"
-
-      -- The initial module parameter substitutions need to be weakened by the
-      -- number of arguments that aren't module parameters.
-  fv           <- getDefFreeVars f
-
-  reportSLn "tc.cover.top" 30 $ "coverageCheck: getting checkpoints"
-
-  -- TODO: does this make sense? Why are we weakening by n - fv?
-  checkpoints <- applySubst (raiseS (n - fv)) <$> viewTC eCheckpoints
-
-      -- construct the initial split clause
-  let sc = SClause gamma xs idS checkpoints $ Just $ defaultDom a
-
-  reportSDoc "tc.cover.top" 10 $ do
-    let prCl cl = addContext (clauseTel cl) $
-                  prettyTCMPatternList $ namedClausePats cl
-    vcat
-      [ text $ "Coverage checking " ++ prettyShow f ++ " with patterns:"
-      , nest 2 $ vcat $ map prCl cs
-      ]
-
-  -- used = actually used clauses for cover
-  -- pss  = non-covered cases
-  CoverResult splitTree used pss qss noex <- cover f cs sc
-
-  -- Andreas, 2018-11-12, issue #378:
-  -- some indices in @used@ and @noex@ point outside of @cs@,
-  -- since missing hcomp clauses have been added during the course of @cover@.
-  -- We simply delete theses indices from @noex@.
-  noex <- return $ List.filter (< length cs) $ IntSet.toList noex
-
-  reportSDoc "tc.cover.top" 10 $ vcat
-    [ "cover computed!"
-    , text $ "used clauses: " ++ show used
-    , text $ "non-exact clauses: " ++ show noex
-    ]
-  reportSDoc "tc.cover.splittree" 10 $ vcat
-    [ "generated split tree for" <+> prettyTCM f
-    , text $ prettyShow splitTree
-    ]
-  reportSDoc "tc.cover.covering" 10 $ vcat
-    [ text $ "covering patterns for " ++ prettyShow f
-    , nest 2 $ vcat $ map (\ cl -> addContext (clauseTel cl) $ prettyTCMPatternList $ namedClausePats cl) qss
-    ]
-
-  -- Storing the covering clauses so that checkIApplyConfluence_ can
-  -- find them later.
-  -- Andreas, 2019-03-27, only needed when --cubical
-  -- Jesper, 2022-10-18, also needed for some backends, so keep when flag says so
-  opts <- pragmaOptions
-  when (isJust (optCubical opts) || optKeepCoveringClauses opts) $
-    modifySignature $ updateDefinition f $ updateTheDef $ updateCovering $ const qss
-
-
-  -- filter out the missing clauses that are absurd.
-  pss <- ifNotM (optInferAbsurdClauses <$> pragmaOptions) (pure pss) {-else-} $
-   flip filterM pss $ \(tel,ps) ->
-    -- Andreas, 2019-04-13, issue #3692: when adding missing absurd
-    -- clauses, also put the absurd pattern in.
-    caseEitherM (checkEmptyTel noRange tel) (\ _ -> return True) $ \ l -> do
-      -- Now, @l@ is the first type in @tel@ (counting from 0=leftmost)
-      -- which is empty.  Turn it into a de Bruijn index @i@.
-      let i = size tel - 1 - l
-      -- Build a substitution mapping this pattern variable to the absurd pattern.
-      let sub = inplaceS i $ absurdP i
-        -- ifNotM (isEmptyTel tel) (return True) $ do
-      -- Jesper, 2018-11-28, Issue #3407: if the clause is absurd,
-      -- add the appropriate absurd clause to the definition.
-      let cl = Clause { clauseLHSRange  = noRange
-                      , clauseFullRange = noRange
-                      , clauseTel       = tel
-                      , namedClausePats = applySubst sub ps
-                      , clauseBody      = Nothing
-                      , clauseType      = Nothing
-                      , clauseCatchall    = True       -- absurd clauses are safe as catch-all
-                      , clauseExact       = Just False
-                      , clauseRecursive   = Just False
-                      , clauseUnreachable = Just False
-                      , clauseEllipsis    = NoEllipsis
-                      , clauseWhereModule = Nothing
-                      }
-      reportSDoc "tc.cover.missing" 20 $ inTopContext $ do
-        sep [ "adding missing absurd clause"
-            , nest 2 $ prettyTCM $ QNamed f cl
-            ]
-      reportSDoc "tc.cover.missing" 80 $ inTopContext $ vcat
-        [ "l   = " <+> pretty l
-        , "i   = " <+> pretty i
-        , "cl  = " <+> pretty (QNamed f cl)
-        ]
-      addClauses f [cl]
-      return False
-
-  -- report a warning if there are uncovered cases,
-  unless (null pss) $ do
-    stLocalPartialDefs `modifyTCLens` Set.insert f
-    whenM ((YesCoverageCheck ==) <$> viewTC eCoverageCheck) $
-      setCurrentRange cs $ warning $ CoverageIssue f pss
-
-  -- Andreas, 2017-08-28, issue #2723:
-  -- Mark clauses as reachable or unreachable in the signature.
-  -- Andreas, 2020-11-19, issue #5065
-  -- Remember whether clauses are exact or not.
-  let (is0, cs1) = unzip $ for (zip [0..] cs) $ \ (i, cl) -> let
-          unreachable = i `IntSet.notMember` used
-          exact       = i `IntSet.notMember` (IntSet.fromList noex)
-        in (boolToMaybe unreachable i, cl
-             { clauseUnreachable = Just unreachable
-             , clauseExact       = Just exact
-             })
-  -- is = indices of unreachable clauses
-  let is = catMaybes is0
-  reportSDoc "tc.cover.top" 10 $ vcat
-    [ text $ "unreachable clauses: " ++ if null is then "(none)" else show is
-    ]
-  -- Replace the first clauses by @cs1@.  There might be more
-  -- added by @inferMissingClause@.
-  modifyFunClauses f $ \ cs0 -> cs1 ++ drop (length cs1) cs0
-
-  -- Warn if there are unreachable clauses and mark them as unreachable.
-  unless (null is) $ do
-    -- Warn about unreachable clauses.
-    let unreached = filter ((Just True ==) . clauseUnreachable) cs1
-    let ranges    = map clauseFullRange unreached
-    setCurrentRange ranges $ warning $ UnreachableClauses f ranges
-
-  -- Report a warning if there are clauses that are not preserved as
-  -- definitional equalities and --exact-split is enabled
-  -- and they are not labelled as CATCHALL.
-  let noexclauses = forMaybe noex $ \ i -> do
-        let cl = indexWithDefault __IMPOSSIBLE__ cs1 i
-        if clauseCatchall cl then Nothing else Just cl
-  unless (null noexclauses) $ do
-      setCurrentRange (map clauseLHSRange noexclauses) $
-        warning $ CoverageNoExactSplit f $ noexclauses
-  return splitTree
+coverageCheck f t cs = undefined
 
 -- | Top-level function for eliminating redundant clauses in the interactive
 --   case splitter
@@ -1257,7 +1108,6 @@ split' checkEmpty ind allowPartialCover inserttrailing
         (dr, d, pars, ixs, cons', isHIT) <- inContextOfT $ isDatatype ind t
         isFib <- lift $ isFibrant t
         cons <- case checkEmpty of
-          CheckEmpty   -> ifM (liftTCM $ inContextOfT $ isEmptyType $ unDom t) (pure []) (pure cons')
           NoCheckEmpty -> pure cons'
         mns  <- forM cons $ \ con -> fmap (SplitCon con,) <$>
           computeNeighbourhood delta1 n delta2 d pars ixs x tel ps cps con
@@ -1368,17 +1218,6 @@ split' checkEmpty ind allowPartialCover inserttrailing
       -- clauses for hcomp will be automatically generated.
       let inferred_tags = maybe Set.empty (Set.singleton . SplitCon) mHCompName
       let all_tags = Set.fromList ptags `Set.union` inferred_tags
-
-      when (allowPartialCover == NoAllowPartialCover && not overlap) $
-        for_ ns $ \(tag, (sc, _)) -> do
-          unless (tag `Set.member` all_tags) $ do
-            isImpossibleClause <- liftTCM $ isEmptyTel $ scTel sc
-            unless isImpossibleClause $ do
-              liftTCM $ reportSDoc "tc.cover" 10 $ vcat
-                [ text "Missing case for" <+> prettyTCM tag
-                , nest 2 $ prettyTCM sc
-                ]
-              throwError (GenericSplitError "precomputed set of constructors does not cover all cases")
 
       liftTCM $ inContextOfT $ checkSortOfSplitVar dr (unDom t) delta2 target
       return $ Right $ Covering (lookupPatternVar sc x) ns

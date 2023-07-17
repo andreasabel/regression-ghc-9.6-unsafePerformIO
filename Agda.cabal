@@ -301,7 +301,6 @@ library
       Agda.TypeChecking.DeadCode
       Agda.TypeChecking.DisplayForm
       Agda.TypeChecking.DropArgs
-      Agda.TypeChecking.Empty
       Agda.TypeChecking.EtaContract
       Agda.TypeChecking.EtaExpand
       Agda.TypeChecking.Errors

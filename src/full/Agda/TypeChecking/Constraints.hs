@@ -28,7 +28,6 @@ import Agda.TypeChecking.Irrelevance
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Term
 import {-# SOURCE #-} Agda.TypeChecking.Conversion
 import {-# SOURCE #-} Agda.TypeChecking.MetaVars
-import {-# SOURCE #-} Agda.TypeChecking.Empty
 import {-# SOURCE #-} Agda.TypeChecking.CheckInternal ( checkType )
 
 import Agda.Utils.CallStack ( withCurrentCallStack )

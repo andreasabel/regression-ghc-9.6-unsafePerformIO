@@ -62,7 +62,6 @@ import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Warnings
 
-import {-# SOURCE #-} Agda.TypeChecking.Empty ( ensureEmptyType )
 
 import Agda.Utils.Function ( applyWhen )
 import Agda.Utils.Functor
@@ -676,7 +675,6 @@ checkAbsurdLambda cmp i h e t =
       Pi dom@(Dom{domInfo = info', unDom = a}) b
         | not (sameHiding h info') -> typeError $ WrongHidingInLambda t'
         | otherwise -> blockTerm t' $ do
-          ensureEmptyType (getRange i) a
           -- Add helper function
           top <- currentModule
           aux <- qualify top <$> freshName_ (getRange i, absurdLambdaName)
