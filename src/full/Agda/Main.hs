@@ -47,121 +47,23 @@ import Agda.Utils.Impossible
 
 -- | The main function
 runAgda :: [Backend] -> IO ()
-runAgda = runAgda'
-
--- | The main function without importing built-in backends
-runAgda' :: [Backend] -> IO ()
-runAgda' backends = runTCMPrettyErrors $ do
+runAgda backends = runTCMPrettyErrors $ do
   progName <- liftIO getProgName
   argv     <- liftIO getArgs
-  let (z, warns) = runOptM $ parseBackendOptions backends argv defaultOptions
-  mapM_ (warning . OptionWarning) warns
-  conf     <- liftIO $ runExceptT $ do
-    (bs, opts) <- ExceptT $ pure z
-    -- The absolute path of the input file, if provided
-    inputFile <- liftIO $ mapM absolute $ optInputFile opts
-    mode      <- getMainMode bs inputFile opts
-    return (bs, opts, mode)
-
-  case conf of
-    Right (bs, opts, MainModeRun interactor) -> do
-          runAgdaWithOptions interactor progName opts
-
--- | Main execution mode
-data MainMode
-  = MainModeRun (Interactor ())
-
--- | Determine the main execution mode to run, based on the configured backends and command line options.
--- | This is pure.
-getMainMode :: MonadError String m => [Backend] -> Maybe AbsolutePath -> CommandLineOptions -> m MainMode
-getMainMode configuredBackends maybeInputFile opts
-  | otherwise = do
-      mi <- getInteractor configuredBackends maybeInputFile opts
-      -- If there was no selection whatsoever (e.g. just invoked "agda"), we just show help and exit.
-      return $ maybe undefined MainModeRun mi
-
-type Interactor a
-    -- Setup/initialization action.
-    -- This is separated so that errors can be reported in the appropriate format.
-    = TCM ()
-    -- Type-checking action
-    -> (AbsolutePath -> TCM CheckResult)
-    -- Main transformed action.
-    -> TCM a
-
-data FrontendType
-  = FrontEndEmacs
-  | FrontEndJson
-  | FrontEndRepl
-
--- The interactor to use when there are no frontends or backends specified.
-defaultInteractor :: AbsolutePath -> Interactor ()
-defaultInteractor file setup check = do setup; void $ check file
-
-getInteractor :: MonadError String m => [Backend] -> Maybe AbsolutePath -> CommandLineOptions -> m (Maybe (Interactor ()))
-getInteractor configuredBackends (Just inputFile) opts =
-  return $ Just $ defaultInteractor inputFile
+  let (Right (_bs, opts), warns) = runOptM $ parseBackendOptions backends argv defaultOptions
+  Just inputFile <- liftIO $ mapM absolute $ optInputFile opts
+  runAgdaWithOptions inputFile progName opts
 
 -- | Run Agda with parsed command line options
 runAgdaWithOptions
-  :: Interactor a       -- ^ Backend interaction
+  :: AbsolutePath
   -> String             -- ^ program name
   -> CommandLineOptions -- ^ parsed command line options
-  -> TCM a
-runAgdaWithOptions interactor progName opts = do
-          -- Main function.
-          -- Bill everything to root of Benchmark trie.
-          UtilsBench.setBenchmarking UtilsBench.BenchmarkOn
-            -- Andreas, Nisse, 2016-10-11 AIM XXIV
-            -- Turn benchmarking on provisionally, otherwise we lose track of time spent
-            -- on e.g. LaTeX-code generation.
-            -- Benchmarking might be turned off later by setCommandlineOptions
-
-          Bench.billTo [] $
-            interactor initialSetup checkFile
-          `finally_` do
-            -- Print benchmarks.
-            Bench.print
-
-            -- Print accumulated statistics.
-            printStatistics Nothing =<< useTC lensAccumStatistics
-  where
-    -- Options are fleshed out here so that (most) errors like
-    -- "bad library path" are validated within the interactor,
-    -- so that they are reported with the appropriate protocol/formatting.
-    initialSetup :: TCM ()
-    initialSetup = do
-      opts <- addTrustedExecutables opts
-      setCommandLineOptions opts
-
-    checkFile :: AbsolutePath -> TCM CheckResult
-    checkFile inputFile = do
-        -- Andreas, 2013-10-30 The following 'resetState' kills the
-        -- verbosity options.  That does not make sense (see fail/Issue641).
-        -- 'resetState' here does not seem to serve any purpose,
-        -- thus, I am removing it.
-        -- resetState
-          let mode = if optOnlyScopeChecking opts
-                     then Imp.ScopeCheck
-                     else Imp.TypeCheck
-
-          result <- Imp.typeCheckMain mode =<< Imp.parseSource (SourceFile inputFile)
-
-          unless (crMode result == ModuleScopeChecked) $
-            unlessNullM (applyFlagsToTCWarnings (crWarnings result)) $ \ ws ->
-              typeError $ NonFatalErrors ws
-
-          let i = crInterface result
-          reportSDoc "main" 50 $ pretty i
-
-          -- Print accumulated warnings
-          unlessNullM (tcWarnings . classifyWarnings <$> getAllWarnings AllWarnings) $ \ ws -> do
-            let banner = text $ "\n" ++ delimiter "All done; warnings encountered"
-            reportSDoc "warning" 1 $
-              vcat $ punctuate "\n" $ banner : (prettyTCM <$> ws)
-
-          return result
-
+  -> TCM ()
+runAgdaWithOptions inputFile _progName opts = do
+  setCommandLineOptions opts
+  Imp.typeCheckMain Imp.TypeCheck =<< Imp.parseSource (SourceFile inputFile)
+  return ()
 
 
 -- | Run a TCM action in IO; catch and pretty print errors.
