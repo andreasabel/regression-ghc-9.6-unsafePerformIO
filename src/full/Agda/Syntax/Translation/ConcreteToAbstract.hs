@@ -72,7 +72,6 @@ import Agda.TypeChecking.Monad.Env (insideDotPattern, isInsideDotPattern, getCur
 
 import Agda.TypeChecking.Patterns.Abstract (expandPatternSynonyms)
 import Agda.TypeChecking.Pretty hiding (pretty, prettyA)
-import Agda.TypeChecking.Quote (quotedName)
 import Agda.TypeChecking.Opacity
 import Agda.TypeChecking.Warnings
 
@@ -3079,12 +3078,6 @@ instance ToAbstract C.Pattern where
 
     toAbstract (C.IdentP canBeConstructor x) =
       resolvePatternIdentifier canBeConstructor (getRange x) x Nothing
-
-    toAbstract (AppP (QuoteP _) p)
-      | IdentP _ x <- namedArg p,
-        visible p = do
-      e <- toAbstract (OldQName x Nothing)
-      A.LitP (PatRange $ getRange x) . LitQName <$> quotedName e
 
     toAbstract (QuoteP r) =
       genericError "quote must be applied to an identifier"

@@ -27,7 +27,6 @@ import Agda.Syntax.Internal.Pattern
 import Agda.Syntax.Translation.InternalToAbstract (NamedClause(..))
 
 import Agda.TypeChecking.Names
-import Agda.TypeChecking.Primitive hiding (Nat)
 import Agda.TypeChecking.Monad
 
 import Agda.TypeChecking.Coverage.Match

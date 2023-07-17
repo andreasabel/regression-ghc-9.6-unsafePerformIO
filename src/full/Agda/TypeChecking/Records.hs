@@ -34,7 +34,6 @@ import Agda.TypeChecking.Reduce.Monad () --instance only
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Warnings
-import {-# SOURCE #-} Agda.TypeChecking.Primitive.Cubical.Base (isCubicalSubtype)
 
 
 import Agda.Utils.Either
@@ -890,40 +889,7 @@ isSingletonType'
                      --   These are considered as non-singletons,
                      --   otherwise we would construct an infinite inhabitant (in an infinite time...).
   -> m (Maybe Term)  -- ^ The unique inhabitant, if any.  May contain dummy terms in irrelevant positions.
-isSingletonType' regardIrrelevance t rs = do
-    TelV tel t <- telView t
-    t <- abortIfBlocked t
-    addContext tel $ do
-      let
-        -- Easy case: η for records.
-        record :: m (Maybe Term)
-        record = runMaybeT $ do
-          (r, ps, def) <- MaybeT $ isRecordType t
-          guard (YesEta == recEtaEquality def)
-          abstract tel <$> MaybeT (isSingletonRecord' regardIrrelevance r ps rs)
-
-        -- Slightly harder case: η for Sub {level} tA phi elt.
-        -- tA : Type level, phi : I, elt : Partial phi tA.
-        subtype :: m (Maybe Term)
-        subtype = runMaybeT $ do
-          (level, tA, phi, elt) <- MaybeT $ isCubicalSubtype t
-          subin <- MaybeT $ getBuiltinName' builtinSubIn
-          itIsOne <- MaybeT $ getBuiltinName' builtinIsOne
-          phiV <- intervalView phi
-          case phiV of
-            -- If phi = i1, then inS (elt 1=1) is the only inhabitant.
-            IOne -> do
-              let
-                argH = Arg $ setHiding Hidden defaultArgInfo
-                it = elt `apply` [defaultArg (Def itIsOne [])]
-              pure (Def subin [] `apply` [argH level, argH tA, argH phi, defaultArg it])
-            -- Otherwise we're blocked
-            OTerm phi' -> patternViolation (unblockOnAnyMetaIn phi')
-            -- This fails the MaybeT: we're not looking at a
-            -- definitional singleton.
-            _ -> fail ""
-
-      (<|>) <$> record <*> subtype
+isSingletonType' regardIrrelevance t rs = return Nothing
 
 -- | Checks whether the given term (of the given type) is beta-eta-equivalent
 --   to a variable. Returns just the de Bruijn-index of the variable if it is,

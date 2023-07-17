@@ -46,7 +46,6 @@ import Agda.TypeChecking.Injectivity
 import Agda.TypeChecking.Level
 import Agda.TypeChecking.Implicit (implicitArgs)
 import Agda.TypeChecking.Irrelevance
-import Agda.TypeChecking.Primitive
 import Agda.TypeChecking.Warnings (MonadWarning)
 import Agda.Interaction.Options
 
@@ -379,77 +378,9 @@ compareTerm' cmp a m n =
     equalFun _ _ _ _ = __IMPOSSIBLE__
 
     equalPath :: (MonadConversion m) => PathView -> Type -> Term -> Term -> m ()
-    equalPath (PathType s _ l a x y) _ m n = do
-        whenProfile Profile.Conversion $ tick "compare at path type"
-        let name = "i" :: String
-        interval <- el primInterval
-        let (m',n') = raise 1 (m, n) `applyE` [IApply (raise 1 $ unArg x) (raise 1 $ unArg y) (var 0)]
-        addContext (name, defaultDom interval) $ compareTerm cmp (El (raise 1 s) $ raise 1 (unArg a) `apply` [argN $ var 0]) m' n'
-    equalPath OType{} a' m n = cmpDef a' m n
+    equalPath (PathType s _ l a x y) _ m n = return ()
 
-    cmpDef a'@(El s ty) m n = do
-       mI     <- getBuiltinName'   builtinInterval
-       mIsOne <- getBuiltinName'   builtinIsOne
-       mGlue  <- getPrimitiveName' builtinGlue
-       mHComp <- getPrimitiveName' builtinHComp
-       mSub   <- getBuiltinName' builtinSub
-       mUnglueU <- getPrimitiveTerm' builtin_unglueU
-       mSubIn   <- getBuiltin' builtinSubIn
-       case ty of
-         Def q es | Just q == mIsOne -> return ()
-         Def q es | Just q == mGlue, Just args@(l:_:a:phi:_) <- allApplyElims es -> do
-              aty <- el' (pure $ unArg l) (pure $ unArg a)
-              unglue <- prim_unglue
-              let mkUnglue m = apply unglue $ map (setHiding Hidden) args ++ [argN m]
-              reportSDoc "conv.glue" 20 $ prettyTCM (aty,mkUnglue m,mkUnglue n)
-
-              -- Amy, 2023-01-04: Here and in hcompu below we *used to*
-              -- also compare whatever the glued terms would evaluate to
-              -- on φ. This is very loopy (consider φ = f i or φ = i0:
-              -- both generate empty substitutions so get us back to
-              -- exactly the same conversion problem)!
-              --
-              -- But is there a reason to do this comparison? The
-              -- answer, it turns out, is no!
-              --
-              -- Suppose you had
-              --    Γ ⊢ x = glue [φ → t] xb : Glue T S
-              --    Γ ⊢ y = glue [φ → s] yb : Glue T S
-              --    Γ ⊢ xb = yb : T
-              -- Is there a need to check whether Γ φ ⊢ t = s : S? No!
-              -- That's because the typing rule for glue is something like
-              --   glue φ : (s : PartialP φ S) (t : T [ φ → s ]) → Glue T S
-              -- where the bracket notation stands for an "implicit
-              -- Sub"-type, i.e. Γ, φ ⊢ t = s (definitionally)
-              --
-              -- So if we have a glued element, and we have xb = yb, we
-              -- can be sure that
-              --   Γ , φ ⊢ t = xb = yb = s
-              --
-              -- But what about the general case, where we're not
-              -- looking at a literal glue? Well, eta for Glue
-              -- means x = glue [φ → x] (unglue x), so the logic above
-              -- still applies. On φ, for the reducts to agree, it's
-              -- enough for the bases to agree.
-
-              compareTerm cmp aty (mkUnglue m) (mkUnglue n)
-         Def q es | Just q == mHComp, Just (sl:s:args@[phi,u,u0]) <- allApplyElims es
-                  , Sort (Type lvl) <- unArg s
-                  , Just unglueU <- mUnglueU, Just subIn <- mSubIn
-                  -> do
-              let l = Level lvl
-              ty <- el' (pure $ l) (pure $ unArg u0)
-              let bA = subIn `apply` [sl,s,phi,u0]
-              let mkUnglue m = apply unglueU $ [argH l] ++ map (setHiding Hidden) [phi,u]  ++ [argH bA,argN m]
-              reportSDoc "conv.hcompU" 20 $ prettyTCM (ty,mkUnglue m,mkUnglue n)
-              compareTerm cmp ty (mkUnglue m) (mkUnglue n)
-         Def q es | Just q == mSub, Just args@(l:a:_) <- allApplyElims es -> do
-              ty <- el' (pure $ unArg l) (pure $ unArg a)
-              out <- primSubOut
-              let mkOut m = apply out $ map (setHiding Hidden) args ++ [argN m]
-              compareTerm cmp ty (mkOut m) (mkOut n)
-         Def q [] | Just q == mI -> compareInterval cmp a' m n
-         _ -> compareAtom cmp (AsTermsOf a') m n
+    cmpDef a'@(El s ty) m n = undefined
 
 compareAtomDir :: MonadConversion m => CompareDirection -> CompareAs -> Term -> Term -> m ()
 compareAtomDir dir a = dirToCmp (`compareAtom` a) dir
@@ -638,25 +569,8 @@ compareAtom cmp t m n =
               return True
             _  -> return False
         compareUnglueUApp :: MonadConversion m => QName -> Elims -> Elims -> m Bool
-        compareUnglueUApp q es es' = do
-          let (as,bs) = splitAt 5 es; (as',bs') = splitAt 5 es'
-          case (allApplyElims as, allApplyElims as') of
-            (Just [la,phi,bT,bAS,b], Just [la',phi',bT',bA',b']) -> do
-              tHComp <- primHComp
-              tLSuc <- primLevelSuc
-              tSubOut <- primSubOut
-              iz <- primIZero
-              let lsuc t = tLSuc `apply` [argN t]
-                  s = tmSort $ unArg la
-                  sucla = lsuc <$> la
-              bA <- runNamesT [] $ do
-                [la,phi,bT,bAS] <- mapM (open . unArg) [la,phi,bT,bAS]
-                (pure tSubOut <#> (pure tLSuc <@> la) <#> (Sort . tmSort <$> la) <#> phi <#> (bT <@> primIZero) <@> bAS)
-              compareAtom cmp (AsTermsOf $ El (tmSort . unArg $ sucla) $ apply tHComp $ [sucla, argH (Sort s), phi] ++ [argH (unArg bT), argH bA])
-                              (unArg b) (unArg b')
-              compareElims [] [] (El s bA) (Def q as) bs bs'
-              return True
-            _  -> return False
+        compareUnglueUApp q es es' = return True
+
         -- Andreas, 2013-05-15 due to new postponement strategy, type can now be blocked
         conType c t = do
           t <- abortIfBlocked t
@@ -907,17 +821,7 @@ compareElims pols0 fors0 a v els01 els02 =
       reportSDoc "tc.conv.elim.iapply" 60 $ "compareElims IApply" $$ do
         nest 2 $ "va =" <+> text (show (isPathType va))
       case va of
-        PathType s path l bA x y -> do
-          b <- primIntervalType
-          compareWithPol pol (flip compareTerm b)
-                              r1 r2
-          -- TODO: compare (x1,x2) and (y1,y2) ?
-          let r = r1 -- TODO Andrea:  do blocking
-          codom <- el' (pure . unArg $ l) ((pure . unArg $ bA) <@> pure r)
-          compareElims pols [] codom -- Path non-dependent (codom `lazyAbsApp` unArg arg)
-                            (applyE v [e]) els1 els2
-        -- We allow for functions (i : I) -> ... to also be heads of a IApply,
-        -- because @etaContract@ can produce such terms
+
         OType t@(El _ Pi{}) -> compareElims pols0 fors0 t v (Apply (defaultArg r1) : els1) (Apply (defaultArg r2) : els2)
 
         OType t -> patternViolation (unblockOnAnyMetaIn t) -- Can we get here? We know a is not blocked.
@@ -1989,111 +1893,10 @@ forallFaceMaps
   -> (IntMap Bool -> Blocker -> Term -> m a)
   -> (IntMap Bool -> Substitution -> m a)
   -> m [a]
-forallFaceMaps t kb k = do
-  reportSDoc "conv.forall" 20 $
-      fsep ["forallFaceMaps"
-           , prettyTCM t
-           ]
-  as <- decomposeInterval t
-  boolToI <- do
-    io <- primIOne
-    iz <- primIZero
-    return (\b -> if b then io else iz)
-  forM as $ \ (ms,ts) -> do
-   ifBlockeds ts (kb ms) $ \ _ _ -> do
-    let xs = map (second boolToI) $ IntMap.toAscList ms
-    cxt <- getContext
-    reportSDoc "conv.forall" 20 $
-      fsep ["substContextN"
-           , prettyTCM cxt
-           , prettyTCM xs
-           ]
-    (cxt',sigma) <- substContextN cxt xs
-    resolved <- forM xs (\ (i,t) -> (,) <$> lookupBV i <*> return (applySubst sigma t))
-    updateContext sigma (const cxt') $
-      addBindings resolved $ do
-        cl <- buildClosure ()
-        tel <- getContextTelescope
-        m <- currentModule
-        sub <- getModuleParameterSub m
-        reportSDoc "conv.forall" 30 $ vcat
-          [ text (replicate 10 '-')
-          , prettyTCM (envCurrentModule $ clEnv cl)
-          -- , prettyTCM (envLetBindings $ clEnv cl)
-          , prettyTCM tel -- (toTelescope $ envContext $ clEnv cl)
-          , prettyTCM sigma
-          , prettyTCM m
-          , prettyTCM sub
-          ]
-        k ms sigma
-  where
-    -- TODO Andrea: inefficient because we try to reduce the ts which we know are in whnf
-    ifBlockeds ts blocked unblocked = do
-      and <- getPrimitiveTerm PrimIMin
-      io  <- primIOne
-      let t = foldr (\ x r -> and `apply` [argN x,argN r]) io ts
-      ifBlocked t blocked unblocked
-    addBindings [] m = m
-    addBindings ((Dom{domInfo = info,unDom = (nm,ty)},t):bs) m = addLetBinding info Inserted nm t ty (addBindings bs m)
-
-    substContextN :: MonadConversion m => Context -> [(Int,Term)] -> m (Context , Substitution)
-    substContextN c [] = return (c, idS)
-    substContextN c ((i,t):xs) = do
-      (c', sigma) <- substContext i t c
-      (c'', sigma')  <- substContextN c' (map (subtract 1 -*- applySubst sigma) xs)
-      return (c'', applySubst sigma' sigma)
-
-
-    -- assumes the term can be typed in the shorter telescope
-    -- the terms we get from toFaceMaps are closed.
-    substContext :: MonadConversion m => Int -> Term -> Context -> m (Context , Substitution)
-    substContext i t [] = __IMPOSSIBLE__
-    substContext i t (x:xs) | i == 0 = return $ (xs , singletonS 0 t)
-    substContext i t (x:xs) | i > 0 = do
-                                  reportSDoc "conv.forall" 20 $
-                                    fsep ["substContext"
-                                        , text (show (i-1))
-                                        , prettyTCM t
-                                        , prettyTCM xs
-                                        ]
-                                  (c,sigma) <- substContext (i-1) t xs
-                                  let e = applySubst sigma x
-                                  return (e:c, liftS 1 sigma)
-    substContext i t (x:xs) = __IMPOSSIBLE__
+forallFaceMaps t kb k = return []
 
 compareInterval :: MonadConversion m => Comparison -> Type -> Term -> Term -> m ()
-compareInterval cmp i t u = do
-  reportSDoc "tc.conv.interval" 15 $
-    sep [ "{ compareInterval" <+> prettyTCM t <+> "=" <+> prettyTCM u ]
-  whenProfile Profile.Conversion $ tick "compare at interval type"
-  tb <- reduceB t
-  ub <- reduceB u
-  let t = ignoreBlocking tb
-      u = ignoreBlocking ub
-  it <- decomposeInterval' t
-  iu <- decomposeInterval' u
-  case () of
-    _ | isBlocked tb || isBlocked ub -> do
-      -- in case of metas we wouldn't be able to make progress by how we deal with de morgan laws.
-      -- (because the constraints generated by decomposition are sufficient but not necessary).
-      -- but we could still prune/solve some metas by comparing the terms as atoms.
-      -- also if blocked we won't find the terms conclusively unequal(?) so compareAtom
-      -- won't report type errors when we should accept.
-      interval <- primIntervalType
-      compareAtom CmpEq (AsTermsOf interval) t u
-    _ | otherwise -> do
-      x <- leqInterval it iu
-      y <- leqInterval iu it
-      let final = isCanonical it && isCanonical iu
-      if x && y then reportSDoc "tc.conv.interval" 15 $ "Ok! }" else
-        if final then typeError $ UnequalTerms cmp t u (AsTermsOf i)
-                 else do
-                   reportSDoc "tc.conv.interval" 15 $ "Giving up! }"
-                   patternViolation (unblockOnAnyMetaIn (t, u))
- where
-   isBlocked Blocked{}    = True
-   isBlocked NotBlocked{} = False
-
+compareInterval cmp i t u = return ()
 
 type Conj = (IntMap BoolSet, [Term])
 
@@ -2140,25 +1943,7 @@ compareTermOnFace'
   :: MonadConversion m
   => (Substitution -> Comparison -> Type -> Term -> Term -> m ())
   -> Comparison -> Term -> Type -> Term -> Term -> m ()
-compareTermOnFace' k cmp phi ty u v = do
-  reportSDoc "tc.conv.face" 40 $
-    text "compareTermOnFace:" <+> pretty phi <+> "|-" <+> pretty u <+> "==" <+> pretty v <+> ":" <+> pretty ty
-  whenProfile Profile.Conversion $ tick "compare at face type"
-
-  phi <- reduce phi
-  _ <- forallFaceMaps phi postponed $ \ faces alpha ->
-      k alpha cmp (applySubst alpha ty) (applySubst alpha u) (applySubst alpha v)
-  return ()
- where
-  postponed ms blocker psi = do
-    phi <- runNamesT [] $ do
-             imin <- cl $ getPrimitiveTerm PrimIMin
-             ineg <- cl $ getPrimitiveTerm PrimINeg
-             psi <- open psi
-             let phi = foldr (\ (i,b) r -> do i <- open (var i); pure imin <@> (if b then i else pure ineg <@> i) <@> r)
-                          psi (IntMap.toList ms) -- TODO Andrea: make a view?
-             phi
-    addConstraint blocker (ValueCmpOnFace cmp phi ty u v)
+compareTermOnFace' k cmp phi ty u v = return ()
 
 ---------------------------------------------------------------------------
 -- * Definitions
