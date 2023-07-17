@@ -32,7 +32,6 @@ import Agda.Syntax.Common
 import Agda.Syntax.Internal as I
 import Agda.Syntax.Internal.Names
 import Agda.Syntax.Position
-import Agda.Syntax.Treeless (Compiled(..), TTerm, ArgUsage)
 
 import Agda.TypeChecking.Monad.Base
 import Agda.TypeChecking.Monad.Builtin
@@ -57,8 +56,6 @@ import {-# SOURCE #-} Agda.TypeChecking.Pretty
 import {-# SOURCE #-} Agda.TypeChecking.ProjectionLike
 import {-# SOURCE #-} Agda.TypeChecking.Reduce
 import {-# SOURCE #-} Agda.TypeChecking.Opacity
-
-import {-# SOURCE #-} Agda.Compiler.Treeless.Erase
 
 import Agda.Utils.CallStack.Base
 import Agda.Utils.Either
@@ -236,25 +233,7 @@ mkPragma s = CompilerPragma <$> getCurrentRange <*> pure s
 
 -- | Add a compiler pragma `{-\# COMPILE <backend> <name> <text> \#-}`
 addPragma :: BackendName -> QName -> String -> TCM ()
-addPragma b q s = ifM erased
-  {- then -} (warning $ PragmaCompileErased b q)
-  {- else -} $ do
-    pragma <- mkPragma s
-    modifySignature $ updateDefinition q $ addCompilerPragma b pragma
-
-  where
-
-  erased :: TCM Bool
-  erased = do
-    def <- theDef <$> getConstInfo q
-    case def of
-      -- If we have a defined symbol, we check whether it is erasable
-      Function{} ->
-        locallyTC      eActiveBackendName (const $ Just b) $
-        locallyTCState stBackends         (const []) $
-        isErasable q
-     -- Otherwise (Axiom, Datatype, Record type, etc.) we keep it
-      _ -> pure False
+addPragma b q s = return ()
 
 getUniqueCompilerPragma :: BackendName -> QName -> TCM (Maybe CompilerPragma)
 getUniqueCompilerPragma backend q = do
@@ -1019,25 +998,6 @@ modifyArgOccurrences :: MonadTCState m => QName -> ([Occurrence] -> [Occurrence]
 modifyArgOccurrences d f =
   modifySignature $ updateDefinition d $ updateDefArgOccurrences f
 
-setTreeless :: QName -> TTerm -> TCM ()
-setTreeless q t =
-  modifyGlobalDefinition q $ updateTheDef $ \case
-    fun@Function{} -> fun{ funTreeless = Just $ Compiled t Nothing }
-    _ -> __IMPOSSIBLE__
-
-setCompiledArgUse :: QName -> [ArgUsage] -> TCM ()
-setCompiledArgUse q use =
-  modifyGlobalDefinition q $ updateTheDef $ \case
-    fun@Function{} ->
-      fun{ funTreeless = funTreeless fun <&> \ c -> c { cArgUsage = Just use } }
-    _ -> __IMPOSSIBLE__
-
-getCompiled :: HasConstInfo m => QName -> m (Maybe Compiled)
-getCompiled q = do
-  (theDef <$> getConstInfo q) <&> \case
-    Function{ funTreeless = t } -> t
-    _                           -> Nothing
-
 -- | Returns a list of length 'conArity'.
 --   If no erasure analysis has been performed yet, this will be a list of 'False's.
 getErasedConArgs :: HasConstInfo m => QName -> m [Bool]
@@ -1054,12 +1014,6 @@ setErasedConArgs q args = modifyGlobalDefinition q $ updateTheDef $ \case
       | length args == conArity -> def{ conErased = Just args }
       | otherwise               -> __IMPOSSIBLE__
     def -> def   -- no-op for non-constructors
-
-getTreeless :: HasConstInfo m => QName -> m (Maybe TTerm)
-getTreeless q = fmap cTreeless <$> getCompiled q
-
-getCompiledArgUse :: HasConstInfo m => QName -> m (Maybe [ArgUsage])
-getCompiledArgUse q = (cArgUsage =<<) <$> getCompiled q
 
 -- | add data constructors to a datatype
 addDataCons :: QName -> [QName] -> TCM ()

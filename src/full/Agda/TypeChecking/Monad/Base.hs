@@ -73,7 +73,6 @@ import Agda.Syntax.Parser (ParseWarning)
 import Agda.Syntax.Parser.Monad (parseWarningName)
 import Agda.Syntax.TopLevelModuleName
   (RawTopLevelModuleName, TopLevelModuleName)
-import Agda.Syntax.Treeless (Compiled)
 import Agda.Syntax.Notation
 import Agda.Syntax.Position
 import Agda.Syntax.Scope.Base
@@ -2324,7 +2323,7 @@ data FunctionData = FunctionData
       -- ^ The split tree constructed by the coverage
       --   checker. Needed to re-compile the clauses after
       --   forcing translation.
-  , _funTreeless       :: Maybe Compiled
+  , _funTreeless       :: ()
       -- ^ Intermediate representation for compiler backends.
   , _funCovering       :: [Clause]
       -- ^ Covering clauses computed by coverage checking.
@@ -2368,7 +2367,7 @@ pattern Function
   :: [Clause]
   -> Maybe CompiledClauses
   -> Maybe SplitTree
-  -> Maybe Compiled
+  -> ()
   -> [Clause]
   -> FunctionInverse
   -> Maybe [QName]
@@ -2778,7 +2777,7 @@ instance Pretty FunctionData where
       [ "funClauses      =" <?> vcat (map pretty funClauses)
       , "funCompiled     =" <?> pretty funCompiled
       , "funSplitTree    =" <?> pretty funSplitTree
-      , "funTreeless     =" <?> pshow funTreeless
+      , "funTreeless     ="
       , "funInv          =" <?> pretty funInv
       , "funMutual       =" <?> pshow funMutual
       , "funAbstr        =" <?> pshow funAbstr
@@ -2928,7 +2927,7 @@ emptyFunctionData = do
     { _funClauses     = []
     , _funCompiled    = Nothing
     , _funSplitTree   = Nothing
-    , _funTreeless    = Nothing
+    , _funTreeless    = ()
     , _funInv         = NotInjective
     , _funMutual      = Nothing
     , _funAbstr       = ConcreteDef

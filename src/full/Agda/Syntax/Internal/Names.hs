@@ -12,7 +12,6 @@ import Agda.Syntax.Literal
 import Agda.Syntax.Internal
 import qualified Agda.Syntax.Concrete as C
 import qualified Agda.Syntax.Abstract as A
-import Agda.Syntax.Treeless
 
 import Agda.TypeChecking.Monad.Base
 import Agda.TypeChecking.CompiledClause
@@ -318,45 +317,6 @@ instance NamesIn a => NamesIn (FunctionInverse' a) where
   namesAndMetasIn' sg = \case
     NotInjective -> mempty
     Inverse m  -> namesAndMetasIn' sg m
-
-instance NamesIn TTerm where
-  namesAndMetasIn' sg = \case
-    TVar _         -> mempty
-    TPrim _        -> mempty
-    TDef x         -> namesAndMetasIn' sg x
-    TApp t xs      -> namesAndMetasIn' sg (t, xs)
-    TLam t         -> namesAndMetasIn' sg t
-    TLit l         -> namesAndMetasIn' sg l
-    TCon x         -> namesAndMetasIn' sg x
-    TLet t1 t2     -> namesAndMetasIn' sg (t1, t2)
-    TCase _ c t ts -> namesAndMetasIn' sg (c, t, ts)
-    TUnit          -> mempty
-    TSort          -> mempty
-    TErased        -> mempty
-    TCoerce t      -> namesAndMetasIn' sg t
-    TError _       -> mempty
-
-instance NamesIn TAlt where
-  namesAndMetasIn' sg = \case
-    TACon x _ t   -> namesAndMetasIn' sg (x, t)
-    TAGuard t1 t2 -> namesAndMetasIn' sg (t1, t2)
-    TALit l t     -> namesAndMetasIn' sg (l, t)
-
-instance NamesIn CaseType where
-  namesAndMetasIn' sg = \case
-    CTData x   -> namesAndMetasIn' sg x
-    CTNat      -> mempty
-    CTInt      -> mempty
-    CTChar     -> mempty
-    CTString   -> mempty
-    CTFloat    -> mempty
-    CTQName    -> mempty
-
-instance NamesIn CaseInfo where
-  namesAndMetasIn' sg (CaseInfo _ _ t) = namesAndMetasIn' sg t
-
-instance NamesIn Compiled where
-  namesAndMetasIn' sg (Compiled t _) = namesAndMetasIn' sg t
 
 -- Pattern synonym stuff --
 

@@ -6,11 +6,8 @@
 module Agda.Compiler.Backend
   ( Backend(..), Backend'(..), Recompile(..), IsMain(..)
   , Flag
-  , toTreeless
-  , module Agda.Syntax.Treeless
   , module Agda.TypeChecking.Monad
   , module CheckResult
-  , activeBackendMayEraseType
     -- For Agda.Main
   , backendInteraction
   , parseBackendOptions
@@ -37,7 +34,6 @@ import GHC.Generics (Generic)
 import System.Console.GetOpt
 
 import Agda.Syntax.TopLevelModuleName
-import Agda.Syntax.Treeless
 import Agda.TypeChecking.Errors (getAllWarnings)
 -- Agda.TypeChecking.Monad.Base imports us, relying on the .hs-boot file to
 -- resolve the circular dependency. Fine. However, ghci loads the module after
@@ -60,7 +56,6 @@ import Agda.Utils.IndexedList
 import Agda.Utils.Lens
 import Agda.Utils.Monad
 
-import Agda.Compiler.ToTreeless
 import Agda.Compiler.Common
 
 import Agda.Utils.Impossible
@@ -101,11 +96,7 @@ data Backend' opts env menv mod def = Backend'
       -- ^ Compile a single definition.
   , scopeCheckingSuffices :: Bool
       -- ^ True if the backend works if @--only-scope-checking@ is used.
-  , mayEraseType     :: QName -> TCM Bool
-      -- ^ The treeless compiler may ask the Backend if elements
-      --   of the given type maybe possibly erased.
-      --   The answer should be 'False' if the compilation of the type
-      --   is used by a third party, e.g. in a FFI binding.
+  , mayEraseType     :: ()
   }
   deriving Generic
 
@@ -147,11 +138,6 @@ activeBackend = runMaybeT $ do
 
 -- | Ask the active backend whether a type may be erased.
 --   See issue #3732.
-
-activeBackendMayEraseType :: QName -> TCM Bool
-activeBackendMayEraseType q = do
-  Backend b <- fromMaybe __IMPOSSIBLE__ <$> activeBackend
-  mayEraseType b q
 
 instance NFData Backend where
   rnf (Backend b) = rnf b

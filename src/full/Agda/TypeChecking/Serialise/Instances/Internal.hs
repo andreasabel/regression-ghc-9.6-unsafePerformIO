@@ -402,7 +402,7 @@ instance EmbPrj Defn where
   value = vcase valu where
     valu [0, a]                                        = valuN Axiom a
     valu [1, a, b, s, u, c, d, e, f, g, h, i, j, k, l, m]
-                                                       = valuN (\ a b s -> Function a b s Nothing) a b s u c d e f g h i j k l m
+                                                       = valuN (\ a b s -> Function a b s ()) a b s u c d e f g h i j k l m
     valu [2, a, b, c, d, e, f, g, h, i, j]             = valuN Datatype a b c d e f g h i j
     valu [3, a, b, c, d, e, f, g, h, i, j, k, l, m]    = valuN Record   a b c d e f g h i j k l m
     valu [4, a, b, c, d, e, f, g, h, i, j, k]          = valuN Constructor a b c d e f g h i j k
