@@ -23,7 +23,6 @@ import Agda.TypeChecking.MetaVars.Mention
 import Agda.TypeChecking.Warnings
 
 import Agda.TypeChecking.Irrelevance
-import {-# SOURCE #-} Agda.TypeChecking.Conversion
 import {-# SOURCE #-} Agda.TypeChecking.MetaVars
 
 import Agda.Utils.CallStack ( withCurrentCallStack )

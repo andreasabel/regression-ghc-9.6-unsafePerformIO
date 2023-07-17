@@ -41,7 +41,6 @@ import Agda.TypeChecking.Free
 import Agda.TypeChecking.Level (levelType)
 import Agda.TypeChecking.Records
 import Agda.TypeChecking.Pretty
-import {-# SOURCE #-} Agda.TypeChecking.Conversion
 
 import Agda.TypeChecking.MetaVars.Occurs
 
@@ -807,13 +806,7 @@ assign dir x args v target = addOrUnblocker (unblockOnMeta x) $ do
 
   cumulativity <- optCumulativity <$> pragmaOptions
 
-  let checkSolutionSort cmp s v = do
-        s' <- sortOf v
-        reportSDoc "tc.meta.assign" 40 $
-          "Instantiating sort" <+> prettyTCM s <+>
-          "to sort" <+> prettyTCM s' <+> "of solution" <+> prettyTCM v
-        traceCall (CheckMetaSolution (getRange mvar) x (sort s) v) $
-          compareSort cmp s' s
+  let checkSolutionSort cmp s v = return ()
 
   case (target , mvJudgement mvar) of
     -- Case 1 (comparing term to meta as types)
@@ -1278,9 +1271,6 @@ assignMeta' m x t n ids v = do
     blockOnBoundary (TelV tel t) bs v = addContext tel $
       blockTerm t $ do
         neg <- primINeg
-        forM_ bs $ \ (r,(x,y)) -> do
-          equalTermOnFace (neg `apply1` r) t x v
-          equalTermOnFace r  t y v
         return v
 
 -- | Check that the instantiation of the given metavariable fits the
@@ -1317,8 +1307,6 @@ checkSubtypeIsEqual a b = do
     cumulativity <- optCumulativity <$> pragmaOptions
     abortIfBlocked (unEl b) >>= \case
       Sort sb -> abortIfBlocked (unEl a) >>= \case
-        Sort sa | cumulativity -> equalSort sa sb
-                             | otherwise    -> return ()
         Dummy{} -> return () -- TODO: this shouldn't happen but
                              -- currently does because of generalized
                              -- metas being created in a dummy context

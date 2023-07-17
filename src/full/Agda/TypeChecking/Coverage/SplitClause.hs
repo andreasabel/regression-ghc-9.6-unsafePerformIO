@@ -32,7 +32,6 @@ import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Coverage.Match
 import Agda.TypeChecking.Coverage.SplitTree
 
-import Agda.TypeChecking.Conversion (tryConversion, equalType)
 import Agda.TypeChecking.Datatypes (getConForm)
 import Agda.TypeChecking.Irrelevance
 import Agda.TypeChecking.Pretty

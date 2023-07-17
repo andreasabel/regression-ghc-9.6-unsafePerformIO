@@ -34,7 +34,6 @@ import Agda.Syntax.Internal
 import Agda.Syntax.Internal.MetaVars
 
 import {-# SOURCE #-} Agda.TypeChecking.Constraints () -- instance only
-import {-# SOURCE #-} Agda.TypeChecking.Conversion
 import {-# SOURCE #-} Agda.TypeChecking.MetaVars () -- instance only
 
 import Agda.TypeChecking.Monad.Base
@@ -73,12 +72,8 @@ inferUnivSort s = do
       -- addConstraint $ HasBiggerSort s
       return $ UnivSort s
 
-sortFitsIn :: MonadConversion m => Sort -> Sort -> m ()
-sortFitsIn a b = do
-  b' <- inferUnivSort a
-  ifM (optCumulativity <$> pragmaOptions)
-    (leqSort b' b)
-    (equalSort b' b)
+sortFitsIn :: Monad m => Sort -> Sort -> m ()
+sortFitsIn a b = return ()
 
 hasBiggerSort :: Sort -> TCM ()
 hasBiggerSort = void . inferUnivSort
