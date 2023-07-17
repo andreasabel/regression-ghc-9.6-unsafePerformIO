@@ -41,7 +41,6 @@ import Agda.TypeChecking.Free
 import Agda.TypeChecking.Level (levelType)
 import Agda.TypeChecking.Records
 import Agda.TypeChecking.Pretty
-import Agda.TypeChecking.EtaContract
 import {-# SOURCE #-} Agda.TypeChecking.Conversion
 
 import Agda.TypeChecking.MetaVars.Occurs
@@ -1440,15 +1439,7 @@ instance ReduceAndEtaContract a => ReduceAndEtaContract [a]
 instance ReduceAndEtaContract a => ReduceAndEtaContract (Arg a)
 
 instance ReduceAndEtaContract Term where
-  reduceAndEtaContract u = do
-    reduce u >>= \case
-      -- In case of lambda or record constructor, it makes sense to
-      -- reduce further.
-      Lam ai (Abs x b) -> etaLam ai x =<< reduceAndEtaContract b
-      Con c ci es -> etaCon c ci es $ \ r c ci args -> do
-        args <- reduceAndEtaContract args
-        etaContractRecord r c ci args
-      v -> return v
+  reduceAndEtaContract u = return u
 
 {- UNUSED, BUT KEEP!
 -- Wrong attempt at expanding bound variables.

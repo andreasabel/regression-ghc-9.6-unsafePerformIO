@@ -52,7 +52,6 @@ import {-# SOURCE #-} Agda.TypeChecking.Level (reallyUnLevelView)
 import Agda.TypeChecking.Monad hiding ( enterClosure, constructorForm )
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.CompiledClause
-import Agda.TypeChecking.EtaContract
 
 import Agda.TypeChecking.Reduce.Monad
 
@@ -1326,9 +1325,7 @@ instance InstantiateFull t => InstantiateFull (Type' t) where
       El <$> instantiateFull' s <*> instantiateFull' t
 
 instance InstantiateFull Term where
-    instantiateFull' = instantiate' >=> recurse >=> etaOnce
-      -- Andreas, 2010-11-12 DONT ETA!? eta-reduction breaks subject reduction
-      -- but removing etaOnce now breaks everything
+    instantiateFull' = instantiate' >=> recurse
       where
         recurse = \case
           Var n vs    -> Var n <$> instantiateFull' vs

@@ -296,7 +296,6 @@ library
       Agda.TypeChecking.DeadCode
       Agda.TypeChecking.DisplayForm
       Agda.TypeChecking.DropArgs
-      Agda.TypeChecking.EtaContract
       Agda.TypeChecking.EtaExpand
       Agda.TypeChecking.Errors
       Agda.TypeChecking.Free
@@ -305,7 +304,6 @@ library
       Agda.TypeChecking.Free.Reduce
       Agda.TypeChecking.Forcing
       Agda.TypeChecking.Functions
-      Agda.TypeChecking.Generalize
       Agda.TypeChecking.Implicit
       Agda.TypeChecking.Injectivity
       Agda.TypeChecking.Inlining
