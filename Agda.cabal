@@ -368,8 +368,6 @@ library
       Agda.TypeChecking.Reduce
       Agda.TypeChecking.Reduce.Fast
       Agda.TypeChecking.Reduce.Monad
-      Agda.TypeChecking.Rules.Builtin
-      Agda.TypeChecking.Rules.Builtin.Coinduction
       Agda.TypeChecking.Rules.Display
       Agda.TypeChecking.Rules.LHS
       Agda.TypeChecking.Rules.LHS.Implicit

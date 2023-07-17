@@ -69,7 +69,6 @@ import qualified Agda.TypeChecking.Monad.State as S
 import Agda.TypeChecking.Monad.MetaVars (registerInteractionPoint)
 import Agda.TypeChecking.Monad.Debug
 import Agda.TypeChecking.Monad.Env (insideDotPattern, isInsideDotPattern, getCurrentPath)
-import Agda.TypeChecking.Rules.Builtin (isUntypedBuiltin, bindUntypedBuiltin, builtinKindOfName)
 
 import Agda.TypeChecking.Patterns.Abstract (expandPatternSynonyms)
 import Agda.TypeChecking.Pretty hiding (pretty, prettyA)
@@ -2523,47 +2522,6 @@ instance ToAbstract C.Pragma where
             "NOT_PROJECTION_LIKE used on ambiguous name " ++ prettyShow x
           _        -> genericError $ "Target of NOT_PROJECTION_LIKE pragma should be a function"
       return [ A.NotProjectionLikePragma y ]
-  toAbstract (C.BuiltinPragma _ rb qx)
-    | Just b' <- b, isUntypedBuiltin b' = do
-        q <- toAbstract $ ResolveQName qx
-        bindUntypedBuiltin b' q
-        return [ A.BuiltinPragma rb q ]
-        -- Andreas, 2015-02-14
-        -- Some builtins cannot be given a valid Agda type,
-        -- thus, they do not come with accompanying postulate or definition.
-    | Just b' <- b, isBuiltinNoDef b' = do
-          case qx of
-            C.QName x -> do
-              -- The name shouldn't exist yet. If it does, we raise a warning
-              -- and drop the existing definition.
-              unlessM ((UnknownName ==) <$> resolveName qx) $ do
-                genericWarning $ P.text $
-                   "BUILTIN " ++ getBuiltinId b' ++ " declares an identifier " ++
-                   "(no longer expects an already defined identifier)"
-                modifyCurrentScope $ removeNameFromScope PublicNS x
-              -- We then happily bind the name
-              y <- freshAbstractQName' x
-              let kind = fromMaybe __IMPOSSIBLE__ $ builtinKindOfName b'
-              bindName PublicAccess kind x y
-              return [ A.BuiltinNoDefPragma rb kind y ]
-            _ -> genericError $
-              "Pragma BUILTIN " ++ getBuiltinId b' ++ ": expected unqualified identifier, " ++
-              "but found " ++ prettyShow qx
-    | otherwise = do
-          q0 <- toAbstract $ ResolveQName qx
-
-          -- Andreas, 2020-04-12, pr #4574.  For highlighting purposes:
-          -- Rebind 'BuiltinPrim' as 'PrimName' and similar.
-          q <- case (q0, b >>= builtinKindOfName, qx) of
-            (DefinedName acc y suffix, Just kind, C.QName x)
-              | anameKind y /= kind
-              , kind `elem` [ PrimName, AxiomName ] -> do
-                  rebindName acc kind x $ anameName y
-                  return $ DefinedName acc y{ anameKind = kind } suffix
-            _ -> return q0
-
-          return [ A.BuiltinPragma rb q ]
-    where b = builtinById (rangedThing rb)
 
   toAbstract (C.EtaPragma _ x) = do
     e <- toAbstract $ OldQName x Nothing
