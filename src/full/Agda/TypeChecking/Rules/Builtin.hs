@@ -41,7 +41,6 @@ import Agda.TypeChecking.Positivity.Occurrence
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
-import Agda.TypeChecking.Rules.Term ( checkExpr , inferExpr )
 import Agda.TypeChecking.Warnings
 
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Builtin.Coinduction
@@ -724,157 +723,10 @@ bindBuiltinSigma t = do
 
 -- | Bind BUILTIN EQUALITY and BUILTIN REFL.
 bindBuiltinEquality :: ResolvedName -> TCM ()
-bindBuiltinEquality x = do
-  (v, _t) <- inferExpr (A.nameToExpr x)
-
-  -- Equality needs to be a data type with 1 constructor
-  (eq, def) <- inductiveCheck builtinEquality 1 v
-
-  -- Check that the type is the type of a polymorphic relation, i.e.,
-  -- Γ → (A : Set _) → A → A → Set _
-  TelV eqTel eqCore <- telView $ defType def
-  let no = genericError "The type of BUILTIN EQUALITY must be a polymorphic relation"
-
-  -- The target is a sort since eq is a data type.
-  unless (isJust $ isSort $ unEl eqCore) __IMPOSSIBLE__
-
-  -- The types of the last two arguments must be the third-last argument
-  unless (natSize eqTel >= 3) no
-  let (a, b) = fromMaybe __IMPOSSIBLE__ $ last2 $ telToList eqTel
-  [a,b] <- reduce $ map (unEl . snd . unDom) [a,b]
-  unless (deBruijnView a == Just 0) no
-  unless (deBruijnView b == Just 1) no
-
-  -- Get the single constructor.
-  case theDef def of
-    Datatype { dataCons = [c] } -> do
-      bindBuiltinName builtinEquality v
-
-      -- Check type of REFL.  It has to be of the form
-      -- pars → (x : A) → Eq ... x x
-
-      -- Check the arguments
-      cdef <- getConstInfo c
-      TelV conTel conCore <- telView $ defType cdef
-      ts <- reduce $ map (unEl . snd . unDom) $ drop (conPars $ theDef cdef) $ telToList conTel
-      -- After dropping the parameters, there should be maximally one argument.
-      unless (length ts <= 1) wrongRefl
-      unless (all ((Just 0 ==) . deBruijnView) ts) wrongRefl
-
-      -- Check the target
-      case unEl conCore of
-        Def _ es -> do
-          let vs = map unArg $ fromMaybe __IMPOSSIBLE__ $ allApplyElims es
-          (a,b) <- reduce $ fromMaybe __IMPOSSIBLE__ $ last2 vs
-          unless (deBruijnView a == Just 0) wrongRefl
-          unless (deBruijnView b == Just 0) wrongRefl
-          bindBuiltinName builtinRefl (Con (ConHead c IsData Inductive []) ConOSystem [])
-        _ -> __IMPOSSIBLE__
-    _ -> genericError "Builtin EQUALITY must be a data type with a single constructor"
-  where
-  wrongRefl = genericError "Wrong type of constructor of BUILTIN EQUALITY"
+bindBuiltinEquality x = return ()
 
 bindBuiltinInfo :: BuiltinInfo -> A.Expr -> TCM ()
-bindBuiltinInfo (BuiltinInfo s d) e = do
-    case d of
-      BuiltinData t cs -> do
-        v <- checkExpr e =<< t
-        unless (s == builtinUnit) $ do
-          void $ inductiveCheck s (length cs) v
-        if | s == builtinEquality -> __IMPOSSIBLE__ -- bindBuiltinEquality v
-           | s == builtinBool     -> bindBuiltinBool     v
-           | s == builtinNat      -> bindBuiltinNat      v
-           | s == builtinInteger  -> bindBuiltinInt      v
-           | s == builtinUnit     -> bindBuiltinUnit     v
-           | s == builtinSigma    -> bindBuiltinSigma    v
-           | s == builtinList     -> bindBuiltinData s   v
-           | s == builtinMaybe    -> bindBuiltinData s   v
-           | otherwise            -> bindBuiltinName s   v
-
-      BuiltinDataCons t -> do
-
-        let name (Lam h b)  = name (absBody b)
-            name (Con c ci _) = Con c ci []
-            name _          = __IMPOSSIBLE__
-
-        v0 <- checkExpr e =<< t
-
-        case e of
-          A.Con{} -> return ()
-          _       -> typeError $ BuiltinMustBeConstructor s e
-
-        let v@(Con h _ []) = name v0
-
-        bindBuiltinName s v
-
-        when (s `elem` [builtinFalse, builtinTrue]) checkBuiltinBool
-
-      BuiltinPrim pfname axioms -> do
-        case e of
-          A.Def qx -> do
-
-            PrimImpl t pf <- lookupPrimitiveFunction pfname
-            v <- checkExpr e t
-
-            axioms v
-
-            info <- getConstInfo qx
-            let cls = defClauses info
-                a   = defAbstract info
-                o   = defOpaque info
-                mcc = defCompiled info
-                inv = defInverse info
-            -- What happens if defArgOccurrences info does not match
-            -- primFunArgOccurrences pf? Let's require the latter to
-            -- be the empty list.
-            unless (primFunArgOccurrences pf == []) __IMPOSSIBLE__
-            bindPrimitive pfname $ pf { primFunName = qx }
-            addConstant qx $ info { theDef = Primitive { primAbstr    = a
-                                                       , primName     = pfname
-                                                       , primClauses  = cls
-                                                       , primInv      = inv
-                                                       , primCompiled = mcc
-                                                       , primOpaque   = o
-                                                       } }
-
-            -- needed? yes, for checking equations for mul
-            bindBuiltinName s v
-
-          _ -> typeError $ GenericError $ "Builtin " ++ getBuiltinId s ++ " must be bound to a function"
-
-      BuiltinSort{} -> __IMPOSSIBLE__ -- always a "BuiltinNoDef"
-
-      BuiltinPostulate rel t -> do
-        t' <- t
-        v <- applyRelevanceToContext rel $ checkExpr e t'
-        let err = typeError $ GenericError $
-                    "The argument to BUILTIN " ++ getBuiltinId s ++ " must be a postulated name"
-        case e of
-          A.Def q -> do
-            def <- getConstInfo q
-            case theDef def of
-              Axiom {} -> do
-                builtinSizeHook s q t'
-                -- And compilation pragmas for base types
-                when (s == builtinLevel)  $ setConstTranspAxiom q >> addHaskellPragma q "= type ()"
-                when (s == builtinChar)   $ setConstTranspAxiom q >> addHaskellPragma q "= type Char"
-                when (s == builtinString) $ setConstTranspAxiom q >> addHaskellPragma q "= type Data.Text.Text"
-                when (s == builtinFloat)  $ setConstTranspAxiom q >> addHaskellPragma q "= type Double"
-                when (s == builtinWord64) $ setConstTranspAxiom q >> addHaskellPragma q "= type MAlonzo.RTE.Word64"
-                when (s == builtinPathP)  $ builtinPathPHook q
-                bindBuiltinName s v
-              _        -> err
-          _ -> err
-
-      BuiltinUnknown mt f -> do
-        (v, t) <- caseMaybe mt (inferExpr e) $ \ tcmt -> do
-          t <- tcmt
-          (,t) <$> checkExpr e t
-        f v t
-        if | s == builtinRewrite -> runMaybeT (getQNameFromTerm v) >>= \case
-              Nothing -> genericError "Invalid rewrite relation"
-              Just q  -> bindBuiltinRewriteRelation q
-           | otherwise           -> bindBuiltinName s v
+bindBuiltinInfo (BuiltinInfo s d) e = return ()
 
 setConstTranspAxiom :: QName -> TCM ()
 setConstTranspAxiom q =

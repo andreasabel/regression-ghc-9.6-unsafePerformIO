@@ -64,7 +64,6 @@ import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Telescope.Path
 import Agda.TypeChecking.Primitive hiding (Nat)
 
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Term (checkExpr, isType_)
 import Agda.TypeChecking.Rules.LHS.Problem
 import Agda.TypeChecking.Rules.LHS.ProblemRest
 import Agda.TypeChecking.Rules.LHS.Unify
@@ -385,36 +384,13 @@ noShadowingOfConstructors problem@(ProblemEq p _ (Dom{domInfo = info, unDom = El
 
 -- | Check that a dot pattern matches it's instantiation.
 checkDotPattern :: DotPattern -> TCM ()
-checkDotPattern (Dot e v (Dom{domInfo = info, unDom = a})) =
-  traceCall (CheckDotPattern e v) $ do
-  reportSDoc "tc.lhs.dot" 15 $
-    sep [ "checking dot pattern"
-        , nest 2 $ prettyA e
-        , nest 2 $ "=" <+> prettyTCM v
-        , nest 2 $ ":" <+> prettyTCM a
-        ]
-  applyModalityToContext info $ do
-    u <- checkExpr e a
-    reportSDoc "tc.lhs.dot" 50 $
-      sep [ "equalTerm"
-          , nest 2 $ pretty a
-          , nest 2 $ pretty u
-          , nest 2 $ pretty v
-          ]
-    equalTerm a u v
+checkDotPattern (Dot e v (Dom{domInfo = info, unDom = a})) = return ()
 
 checkAbsurdPattern :: AbsurdPattern -> TCM ()
 checkAbsurdPattern (Absurd r a) = return ()
 
 checkAnnotationPattern :: AnnotationPattern -> TCM ()
-checkAnnotationPattern (Ann t a) = do
-  reportSDoc "tc.lhs.ann" 15 $
-    sep [ "checking type annotation in pattern"
-        , nest 2 $ prettyA t
-        , nest 2 $ "=" <+> prettyTCM a
-        ]
-  b <- isType_ t
-  equalType a b
+checkAnnotationPattern (Ann t a) = return ()
 
 -- | After splitting is complete, we transfer the origins
 --   We also transfer the locations of absurd patterns, since these haven't
@@ -1045,206 +1021,14 @@ checkLHS mf = updateModality checkLHS_ where
 
 
     splitRest :: NamedArg A.Pattern -> ExceptT TCErr tcm (LHSState a)
-    splitRest p = setCurrentRange p $ do
-      reportSDoc "tc.lhs.split" 20 $ sep
-        [ "splitting problem rest"
-        , nest 2 $ "projection pattern =" <+> prettyA p
-        , nest 2 $ "eliminates type    =" <+> prettyTCM target
-        ]
-      reportSDoc "tc.lhs.split" 80 $ sep
-        [ nest 2 $ text $ "projection pattern (raw) = " ++ show p
-        ]
-
-      -- @p@ should be a projection pattern projection from @target@
-      (orig, ambProjName) <- ifJust (A.isProjP p) return $ addContext tel $ do
-        block <- isBlocked target
-        softTypeError $ CannotEliminateWithPattern block p (unArg target)
-
-      (projName, comatchingAllowed, recName, projType, ai) <- suspendErrors $ do
-        -- Andreas, 2018-10-18, issue #3289: postfix projections do not have hiding
-        -- information for their principal argument; we do not parse @{r}.p@ and the like.
-        let h = if orig == ProjPostfix then Nothing else Just $ getHiding p
-        addContext tel $ disambiguateProjection h ambProjName target
-
-      unless comatchingAllowed $ do
-        hardTypeError . GenericDocError =<< do
-          liftTCM $ "Copattern matching is disabled for record" <+> prettyTCM recName
-
-      -- Compute the new rest type by applying the projection type to 'self'.
-      -- Note: we cannot be in a let binding.
-      f <- ifJust mf return $ hardTypeError $
-             GenericError "Cannot use copatterns in a let binding"
-      let self = Def f $ patternsToElims ip
-      target' <- traverse (`piApplyM` self) projType
-
-      -- Compute the new state
-      let projP    = applyWhen (orig == ProjPostfix) (setHiding NotHidden) $
-                       Arg ai $ Named Nothing (ProjP orig projName)
-          ip'      = ip ++ [projP]
-          -- drop the projection pattern (already splitted)
-          problem' = over problemRestPats tail problem
-      liftTCM $ updateLHSState (LHSState tel ip' problem' target' psplit ixsplit)
-
-
-    -- Split a Partial.
-    --
-    -- Example for splitPartial:
-    -- @
-    --   g : ∀ i j → Partial (i ∨ j) A
-    --   g i j (i = 1) = a i j
-    --   g i j (j = 1) = b i j
-    -- @
-    -- leads to, in the first clause:
-    -- @
-    --   dom   = IsOne (i ∨ j)
-    --   ts    = [(i, 1)]
-    --   phi   = i
-    --   sigma = [1/i]
-    -- @
-    -- Final clauses:
-    -- @
-    --   g : ∀ i j → Partial (i ∨ j) A
-    --   g 1? j  .itIsOne = a 1 j
-    --   g i  1? .itIsOne = b i 1
-    -- @
-    -- Herein, ? indicates a 'conPFallThrough' pattern.
-    --
-    -- Example for splitPartial:
-    -- @
-    --   h : ∀ i j → Partial (i & ¬ j) A
-    --   h i j (i = 1) (j = 0)
-    --   -- ALT: h i j (i & ¬ j = 1)
-    -- @
-    -- gives
-    -- @
-    --   dom = IsOne (i & ¬ j)
-    --   ts  = [(i,1), (j,0)]  -- ALT: [(i & ¬ j, 1)]
-    --   phi = i & ¬ j
-    --   sigma = [1/i,0/j]
-    -- @
-    --
-    -- Example for splitPartial:
-    -- @
-    --   g : ∀ i j → Partial (i ∨ j) A
-    --   g i j (i ∨ j = 1) = a i j
-    -- @
-    -- leads to, in the first clause:
-    -- @
-    --   dom   = IsOne (i ∨ j)
-    --   ts    = [(i ∨ j, 1)]
-    --   phi   = i ∨ j
-    --   sigma = fails because several substitutions [[1/i],[1/j]] correspond to phi
-    -- @
+    splitRest p = undefined
 
     splitPartial :: Telescope     -- The types of arguments before the one we split on
                  -> Dom Type      -- The type of the argument we split on
                  -> Abs Telescope -- The types of arguments after the one we split on
                  -> [(A.Expr, A.Expr)] -- [(φ₁ = b1),..,(φn = bn)]
                  -> ExceptT TCErr tcm (LHSState a)
-    splitPartial delta1 dom adelta2 ts = do
-
-      unless (domIsFinite dom) $ liftTCM $ addContext delta1 $
-        softTypeError . GenericDocError =<<
-        vcat [ "Splitting on partial elements is only allowed at the type Partial, but the domain here is" , nest 2 $ prettyTCM $ unDom dom ]
-
-      tInterval <- liftTCM $ primIntervalType
-
-      names <- liftTCM $ addContext tel $ do
-        LeftoverPatterns{patternVariables = vars} <- getLeftoverPatterns $ problem ^. problemEqs
-        return $ take (size delta1) $ fst $ getUserVariableNames tel vars
-
-      -- Problem: The context does not match the checkpoints in checkLHS,
-      --          however we still need a proper checkpoint substitution
-      --          for checkExpr below.
-      --
-      -- Solution: partial splits are not allowed when there are
-      --           constructor patterns (checked in checkDef), so
-      --           newContext is an extension of the definition
-      --           context.
-      --
-      -- i.e.: Given
-      --
-      --             Γ = context where def is checked, also last checkpoint.
-      --
-      --       Then
-      --
-      --             newContext = Γ Ξ
-      --             cpSub = raiseS |Ξ|
-      --
-      lhsCxtSize <- ask -- size of the context before checkLHS call.
-      reportSDoc "tc.lhs.split.partial" 10 $ "lhsCxtSize =" <+> prettyTCM lhsCxtSize
-
-      newContext <- liftTCM $ computeLHSContext names delta1
-      reportSDoc "tc.lhs.split.partial" 10 $ "newContext =" <+> prettyTCM newContext
-
-      let cpSub = raiseS $ size newContext - lhsCxtSize
-
-      (gamma,sigma) <- liftTCM $ updateContext cpSub (const newContext) $ do
-         ts <- forM ts $ \ (t,u) -> do
-                 reportSDoc "tc.lhs.split.partial" 10 $ "currentCxt =" <+> (prettyTCM =<< getContext)
-                 reportSDoc "tc.lhs.split.partial" 10 $ text "t, u (Expr) =" <+> prettyTCM (t,u)
-                 t <- checkExpr t tInterval
-                 u <- checkExpr u tInterval
-                 reportSDoc "tc.lhs.split.partial" 10 $ text "t, u        =" <+> pretty (t, u)
-                 u <- intervalView =<< reduce u
-                 case u of
-                   IZero -> primINeg <@> pure t
-                   IOne  -> return t
-                   _     -> typeError $ GenericError $ "Only 0 or 1 allowed on the rhs of face"
-         -- Example: ts = (i=0) (j=1) will result in phi = ¬ i & j
-         phi <- case ts of
-                   [] -> do
-                     a <- reduce (unEl $ unDom dom)
-                     -- builtinIsOne is defined, since this is a precondition for having Partial
-                     isone <- fromMaybe __IMPOSSIBLE__ <$>  -- newline because of CPP
-                       getBuiltinName' builtinIsOne
-                     case a of
-                       Def q [Apply phi] | q == isone -> return (unArg phi)
-                       _           -> typeError . GenericDocError =<< do
-                         prettyTCM a <+> " is not IsOne."
-
-                   _  -> foldl (\ x y -> primIMin <@> x <@> y) primIOne (map pure ts)
-         reportSDoc "tc.lhs.split.partial" 10 $ text "phi           =" <+> prettyTCM phi
-         reportSDoc "tc.lhs.split.partial" 30 $ text "phi           =" <+> pretty phi
-         phi <- reduce phi
-         reportSDoc "tc.lhs.split.partial" 10 $ text "phi (reduced) =" <+> prettyTCM phi
-         refined <- forallFaceMaps phi (\ bs m t -> typeError $ GenericError $ "face blocked on meta")
-                            (\_ sigma -> (,sigma) <$> getContextTelescope)
-         case refined of
-           [(gamma,sigma)] -> return (gamma,sigma)
-           []              -> typeError $ GenericError $ "The face constraint is unsatisfiable."
-           _               -> typeError $ GenericError $ "Cannot have disjunctions in a face constraint."
-      itisone <- liftTCM primItIsOne
-      -- substitute the literal in p1 and dpi
-      reportSDoc "tc.lhs.faces" 60 $ text $ show sigma
-
-      let oix = size adelta2 -- de brujin index of IsOne
-          o_n = fromMaybe __IMPOSSIBLE__ $
-            findIndex (\ x -> case namedThing (unArg x) of
-                                   VarP _ x -> dbPatVarIndex x == oix
-                                   _        -> False) ip
-          delta2' = absApp adelta2 itisone
-          delta2 = applySubst sigma delta2'
-          mkConP (Con c _ [])
-             = ConP c (noConPatternInfo { conPType = Just (Arg defaultArgInfo tInterval)
-                                              , conPFallThrough = True })
-                          []
-          mkConP (Var i []) = VarP defaultPatternInfo (DBPatVar "x" i)
-          mkConP _          = __IMPOSSIBLE__
-          rho0 = fmap mkConP sigma
-
-          rho    = liftS (size delta2) $ consS (DotP defaultPatternInfo itisone) rho0
-
-          delta'   = abstract gamma delta2
-          eqs'     = applyPatSubst rho $ problem ^. problemEqs
-          ip'      = applySubst rho ip
-          target'  = applyPatSubst rho target
-
-      -- Compute the new state
-      let problem' = set problemEqs eqs' problem
-      reportSDoc "tc.lhs.split.partial" 60 $ text (show problem')
-      liftTCM $ updateLHSState (LHSState delta' ip' problem' target' (psplit ++ [Just o_n]) ixsplit)
-
+    splitPartial delta1 dom adelta2 ts = undefined
 
     splitLit :: Telescope      -- The types of arguments before the one we split on
              -> Dom Type       -- The type of the literal we split on

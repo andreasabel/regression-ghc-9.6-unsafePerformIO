@@ -22,7 +22,6 @@ import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Rules.Builtin
-import Agda.TypeChecking.Rules.Term
 
 import Agda.Utils.Lens
 
@@ -53,7 +52,6 @@ typeOfFlat = hPi "a" (el primLevel) $
 
 bindBuiltinInf :: ResolvedName -> TCM ()
 bindBuiltinInf x = bindPostulatedName builtinInf x $ \inf _ -> do
-  _ <- checkExpr (A.Def inf) =<< typeOfInf
   return $ Def inf []
 
 -- | Binds the SHARP builtin, and changes the definitions of INFINITY
@@ -69,7 +67,6 @@ bindBuiltinSharp x =
   bindPostulatedName builtinSharp x $ \sharp sharpDefn -> do
     sharpType <- typeOfSharp
     TelV fieldTel _ <- telView sharpType
-    _ <- checkExpr (A.Def sharp) sharpType
     Def inf _ <- primInf
     infDefn   <- getConstInfo inf
     erasure   <- optErasure <$> pragmaOptions
@@ -119,7 +116,6 @@ bindBuiltinSharp x =
 bindBuiltinFlat :: ResolvedName -> TCM ()
 bindBuiltinFlat x =
   bindPostulatedName builtinFlat x $ \ flat flatDefn -> do
-    _ <- checkExpr (A.Def flat) =<< typeOfFlat
     Def sharp _ <- primSharp
     kit         <- requireLevels
     Def inf _   <- primInf

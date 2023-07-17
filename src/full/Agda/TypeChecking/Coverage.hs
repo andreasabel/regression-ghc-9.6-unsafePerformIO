@@ -43,7 +43,6 @@ import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Rules.LHS (DataOrRecord(..), checkSortOfSplitVar)
 import Agda.TypeChecking.Rules.LHS.Problem (allFlexVars)
 import Agda.TypeChecking.Rules.LHS.Unify
-import Agda.TypeChecking.Rules.Term (unquoteTactic)
 
 import Agda.TypeChecking.Coverage.Match
 import Agda.TypeChecking.Coverage.SplitTree
@@ -512,12 +511,6 @@ inferMissingClause f (SClause tel ps _ cps (Just t)) = setCurrentRange f $ do
     $ locallyTC eCheckpoints (const cps)
     $ checkpoint IdS    -- introduce a fresh checkpoint
     $ case getHiding t of
-        _ | Just tac <- domTactic t -> do
-          reportSDoc "tc.cover.infer" 40 $ vcat
-            [ "@tactic rhs"
-            , nest 2 $ "target =" <+> pretty t ]
-          (_, v) <- newValueMeta DontRunMetaOccursCheck CmpLeq (unDom t)
-          v <$ unquoteTactic tac v (unDom t)
         Instance{} -> snd <$> newInstanceMeta "" (unDom t)
         Hidden     -> __IMPOSSIBLE__
         NotHidden  -> __IMPOSSIBLE__

@@ -15,7 +15,6 @@ import Agda.Syntax.Internal as I
 
 import Agda.TypeChecking.Irrelevance
 import {-# SOURCE #-} Agda.TypeChecking.MetaVars
-import {-# SOURCE #-} Agda.TypeChecking.Rules.Term (unquoteTactic)
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
@@ -121,8 +120,6 @@ implicitNamedArgs n expand t0 = do
 
             return $ makeInstance info
           (_, v) <- newMetaArg info' x CmpLeq a
-          whenJust tac $ \ tac -> liftTCM $
-            applyModalityToContext info $ unquoteTactic tac v a
           let narg = Arg info (Named (Just $ WithOrigin Inserted $ unranged x) v)
           mapFst (narg :) <$> implicitNamedArgs (n-1) expand (absApp b v)
       _ -> return ([], t0')

@@ -29,7 +29,6 @@ import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Rules.LHS (DataOrRecord(..), checkSortOfSplitVar)
 import Agda.TypeChecking.Rules.LHS.Problem (allFlexVars)
 import Agda.TypeChecking.Rules.LHS.Unify
-import Agda.TypeChecking.Rules.Term (unquoteTactic)
 
 import Agda.TypeChecking.Coverage.Match
 import Agda.TypeChecking.Coverage.SplitTree
