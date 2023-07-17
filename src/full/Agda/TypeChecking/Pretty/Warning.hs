@@ -27,7 +27,6 @@ import Agda.TypeChecking.Monad.Debug
 import Agda.TypeChecking.Monad.Constraints
 import Agda.TypeChecking.Monad.State ( getScope )
 import Agda.TypeChecking.Monad ( localTCState, enterClosure )
-import Agda.TypeChecking.Positivity () --instance only
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Pretty.Call
 import {-# SOURCE #-} Agda.TypeChecking.Pretty.Constraint (prettyInterestingConstraints, interestingConstraint)
@@ -122,7 +121,7 @@ prettyWarning = \case
 
     NotStrictlyPositive d ocs -> fsep $
       [prettyTCM d] ++ pwords "is not strictly positive, because it occurs"
-      ++ [prettyTCM ocs]
+
 
     UnsupportedIndexedMatch doc -> vcat
       [ fsep (pwords "This clause uses pattern-matching features that are not yet supported by Cubical Agda,"
