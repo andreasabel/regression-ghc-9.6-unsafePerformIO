@@ -59,7 +59,6 @@ import Agda.TypeChecking.Reduce.Monad
 import {-# SOURCE #-} Agda.TypeChecking.CompiledClause.Match
 import {-# SOURCE #-} Agda.TypeChecking.Patterns.Match
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
-import {-# SOURCE #-} Agda.TypeChecking.Rewriting
 import {-# SOURCE #-} Agda.TypeChecking.Reduce.Fast
 import {-# SOURCE #-} Agda.TypeChecking.Opacity
 
@@ -640,113 +639,7 @@ unfoldDefinition' keepGoing v0 f es = do
     YesReduction simp v -> keepGoing simp v
 
 unfoldDefinitionStep :: Term -> QName -> Elims -> ReduceM (Reduced (Blocked Term) Term)
-unfoldDefinitionStep v0 f es =
-  {-# SCC "reduceDef" #-} do
-  traceSDoc "tc.reduce" 90 ("unfoldDefinitionStep v0" <+> pretty v0) $ do
-  info <- getConstInfo f
-  rewr <- instantiateRewriteRules =<< getRewriteRulesFor f
-  allowed <- asksTC envAllowedReductions
-  prp <- runBlocked $ isPropM $ defType info
-  defOk <- shouldReduceDef f
-  let def = theDef info
-      v   = v0 `applyE` es
-      -- Non-terminating functions
-      -- (i.e., those that failed the termination check)
-      -- and delayed definitions
-      -- are not unfolded unless explicitly permitted.
-      dontUnfold = or
-        [ defNonterminating info && SmallSet.notMember NonTerminatingReductions allowed
-        , defTerminationUnconfirmed info && SmallSet.notMember UnconfirmedReductions allowed
-        , prp == Right True
-        , isIrrelevant info
-        , not defOk
-        ]
-      copatterns = defCopatternLHS info
-  case def of
-    Constructor{conSrcCon = c} -> do
-      let hd = Con (c `withRangeOf` f) ConOSystem
-      rewrite (NotBlocked ReallyNotBlocked ()) hd rewr es
-    Primitive{primAbstr = ConcreteDef, primName = x, primClauses = cls} -> do
-      pf <- fromMaybe __IMPOSSIBLE__ <$> getPrimitive' x
-      if FunctionReductions `SmallSet.member` allowed
-        then reducePrimitive x v0 f es pf dontUnfold
-                             cls (defCompiled info) rewr
-        else noReduction $ notBlocked v
-    PrimitiveSort{ primSortSort = s } -> yesReduction NoSimplification $ Sort s `applyE` es
-
-    _  -> do
-      if or
-          [ RecursiveReductions `SmallSet.member` allowed
-          , isJust (isProjection_ def) && ProjectionReductions `SmallSet.member` allowed
-              -- Includes projection-like and irrelevant projections.
-              -- Note: irrelevant projections lead to @dontUnfold@ and
-              -- so are not actually unfolded.
-          , isInlineFun def && InlineReductions `SmallSet.member` allowed
-          , definitelyNonRecursive_ def && or
-            [ copatterns && CopatternReductions `SmallSet.member` allowed
-            , FunctionReductions `SmallSet.member` allowed
-            ]
-          ]
-        then
-          reduceNormalE v0 f (map notReduced es) dontUnfold
-                       (defClauses info) (defCompiled info) rewr
-        else noReduction $ notBlocked v  -- Andrea(s), 2014-12-05 OK?
-
-  where
-    noReduction    = return . NoReduction
-    yesReduction s = return . YesReduction s
-    reducePrimitive x v0 f es pf dontUnfold cls mcc rewr
-      | length es < ar
-                  = noReduction $ NotBlocked Underapplied $ v0 `applyE` es -- not fully applied
-      | otherwise = {-# SCC "reducePrimitive" #-} do
-          let (es1,es2) = splitAt ar es
-              args1     = fromMaybe __IMPOSSIBLE__ $ mapM isApplyElim es1
-          r <- primFunImplementation pf args1 (length es2)
-          case r of
-            NoReduction args1' -> do
-              let es1' = map (fmap Apply) args1'
-              if null cls && null rewr then do
-                noReduction $ applyE (Def f []) <$> do
-                  blockAll $ map mredToBlocked es1' ++ map notBlocked es2
-               else
-                reduceNormalE v0 f (es1' ++ map notReduced es2) dontUnfold cls mcc rewr
-            YesReduction simpl v -> yesReduction simpl $ v `applyE` es2
-      where
-          ar  = primFunArity pf
-
-          mredToBlocked :: IsMeta t => MaybeReduced t -> Blocked t
-          mredToBlocked (MaybeRed NotReduced  e) = notBlocked e
-          mredToBlocked (MaybeRed (Reduced b) e) = e <$ b
-
-    reduceNormalE :: Term -> QName -> [MaybeReduced Elim] -> Bool -> [Clause] -> Maybe CompiledClauses -> RewriteRules -> ReduceM (Reduced (Blocked Term) Term)
-    reduceNormalE v0 f es dontUnfold def mcc rewr = {-# SCC "reduceNormal" #-} do
-      traceSDoc "tc.reduce" 90 ("reduceNormalE v0 =" <+> pretty v0) $ do
-      case (def,rewr) of
-        _ | dontUnfold -> traceSLn "tc.reduce" 90 "reduceNormalE: don't unfold (non-terminating or delayed)" $
-                          defaultResult -- non-terminating or delayed
-        ([],[])        -> traceSLn "tc.reduce" 90 "reduceNormalE: no clauses or rewrite rules" $ do
-          -- no definition for head
-          blk <- defBlocked <$> getConstInfo f
-          noReduction $ blk $> vfull
-        (cls,rewr)     -> do
-          ev <- appDefE_ f v0 cls mcc rewr es
-          debugReduce ev
-          return ev
-      where
-      defaultResult = noReduction $ NotBlocked ReallyNotBlocked vfull
-      vfull         = v0 `applyE` map ignoreReduced es
-      debugReduce ev = verboseS "tc.reduce" 90 $ do
-        case ev of
-          NoReduction v -> do
-            reportSDoc "tc.reduce" 90 $ vcat
-              [ "*** tried to reduce " <+> pretty f
-              , "    es =  " <+> sep (map (pretty . ignoreReduced) es)
-              -- , "*** tried to reduce " <+> pretty vfull
-              , "    stuck on" <+> pretty (ignoreBlocking v)
-              ]
-          YesReduction _simpl v -> do
-            reportSDoc "tc.reduce"  90 $ "*** reduced definition: " <+> pretty f
-            reportSDoc "tc.reduce"  95 $ "    result" <+> pretty v
+unfoldDefinitionStep v0 f es = undefined
 
 -- | Specialized version to put in boot file.
 reduceDefCopyTCM :: QName -> Elims -> TCM (Reduced () Term)
@@ -872,12 +765,7 @@ appDef :: Term -> CompiledClauses -> RewriteRules -> MaybeReducedArgs -> ReduceM
 appDef v cc rewr args = appDefE v cc rewr $ map (fmap Apply) args
 
 appDefE :: Term -> CompiledClauses -> RewriteRules -> MaybeReducedElims -> ReduceM (Reduced (Blocked Term) Term)
-appDefE v cc rewr es = do
-  traceSDoc "tc.reduce" 90 ("appDefE v = " <+> pretty v) $ do
-  r <- matchCompiledE cc es
-  case r of
-    YesReduction simpl t -> return $ YesReduction simpl t
-    NoReduction es'      -> rewrite (void es') (applyE v) rewr (ignoreBlocking es')
+appDefE v cc rewr es = undefined
 
 -- | Apply a defined function to it's arguments, using the original clauses.
 appDef' :: QName -> Term -> [Clause] -> RewriteRules -> MaybeReducedArgs -> ReduceM (Reduced (Blocked Term) Term)
@@ -902,9 +790,6 @@ appDefE'' v cls rewr es = traceSDoc "tc.reduce" 90 ("appDefE' v = " <+> pretty v
         -- the remaining clauses (see Issue 907).
         -- Andrea(s), 2014-12-05:  We return 'MissingClauses' here, since this
         -- is the most conservative reason.
-        [] -> do
-          f <- fromMaybe __IMPOSSIBLE__ <$> asksTC envAppDef
-          rewrite (NotBlocked (MissingClauses f) ()) (applyE v) rewr es
         cl : cls -> do
           let pats = namedClausePats cl
               body = clauseBody cl
@@ -917,7 +802,6 @@ appDefE'' v cls rewr es = traceSDoc "tc.reduce" 90 ("appDefE' v = " <+> pretty v
             let es = es0 ++ es1
             case m of
               No         -> goCls cls es
-              DontKnow b -> rewrite b (applyE v) rewr es
               Yes simpl vs -- vs is the subst. for the variables bound in body
                 | Just w <- body -> do -- clause has body?
                     -- TODO: let matchPatterns also return the reduced forms
@@ -925,7 +809,6 @@ appDefE'' v cls rewr es = traceSDoc "tc.reduce" 90 ("appDefE' v = " <+> pretty v
                     -- Andreas, 2013-05-19 isn't this done now?
                     let sigma = buildSubstitution impossible nvars vs
                     return $ YesReduction simpl $ applySubst sigma w `applyE` es1
-                | otherwise     -> rewrite (NotBlocked AbsurdMatch ()) (applyE v) rewr es
 
 instance Reduce a => Reduce (Closure a) where
     reduce' cl = do

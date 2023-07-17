@@ -64,7 +64,6 @@ import Agda.Syntax.Literal
 import Agda.TypeChecking.CompiledClause
 import Agda.TypeChecking.Monad hiding (Closure(..))
 import Agda.TypeChecking.Reduce as R
-import Agda.TypeChecking.Rewriting (rewrite)
 import Agda.TypeChecking.Substitute
 
 import Agda.Interaction.Options
@@ -1347,20 +1346,7 @@ reduceTm rEnv bEnv !constInfo normalisation =
     -- rewriting and pack the result back up in a closure. In case some rewrite rules actually fired
     -- the next state is an unevaluated closure, otherwise it's a value closure.
     rewriteAM :: AM s -> ST s (Blocked Term)
-    rewriteAM s@(Eval (Closure (Value blk) t env spine) ctrl)
-      | null rewr = runAM s
-      | otherwise = traceDoc ("R" <+> pretty s) $ do
-        v0 <- decodeClosure_ (Closure Unevaled t env [])
-        es <- decodeSpine spine
-        case runReduce (rewrite blk (applyE v0) rewr es) of
-          NoReduction b    -> runAM (evalValue (() <$ b) (ignoreBlocking b) emptyEnv [] ctrl)
-          YesReduction _ v -> runAM (evalClosure v emptyEnv [] ctrl)
-      where rewr = case t of
-                     Def f []   -> rewriteRules f
-                     Con c _ [] -> rewriteRules (conName c)
-                     _          -> __IMPOSSIBLE__
-    rewriteAM _ =
-      __IMPOSSIBLE__
+    rewriteAM s@(Eval (Closure (Value blk) t env spine) ctrl) = undefined
 
     -- Add a NatSucK frame to the control stack. Pack consecutive suc's into a single frame.
     sucCtrl :: ControlStack s -> ControlStack s

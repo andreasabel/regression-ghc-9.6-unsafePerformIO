@@ -44,7 +44,6 @@ import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Warnings
 
 import {-# SOURCE #-} Agda.TypeChecking.Rules.Builtin.Coinduction
-import {-# SOURCE #-} Agda.TypeChecking.Rewriting
 
 import Agda.Utils.Functor
 import Agda.Utils.List
@@ -280,7 +279,7 @@ coreBuiltins =
   --                                                                 hPi "A" (return $ sort $ varSort 0) $
   --                                                                 hPi "x" (El (varSort 1) <$> varM 0) $
   --                                                                 El (varSort 2) <$> primEquality <#> varM 2 <#> varM 1 <@> varM 0 <@> varM 0))
-  , (builtinRewrite                          |-> BuiltinUnknown Nothing verifyBuiltinRewrite)
+  , (builtinRewrite                          |-> BuiltinUnknown Nothing undefined)
   , (builtinNil                              |-> BuiltinDataCons (hPi "A" tset (el (list v0))))
   , (builtinCons                             |-> BuiltinDataCons (hPi "A" tset (tv0 --> el (list v0) --> el (list v0))))
   , (builtinNothing                          |-> BuiltinDataCons (hPi "A" tset (el (tMaybe v0))))
