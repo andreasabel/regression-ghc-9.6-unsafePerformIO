@@ -37,7 +37,6 @@ import Agda.TypeChecking.Warnings
 import Agda.TypeChecking.Pretty
 
 import Agda.Compiler.Backend
-import Agda.Compiler.Builtin
 
 import Agda.VersionCommit
 
@@ -51,7 +50,7 @@ import Agda.Utils.Impossible
 
 -- | The main function
 runAgda :: [Backend] -> IO ()
-runAgda backends = runAgda' $ builtinBackends ++ backends
+runAgda = runAgda'
 
 -- | The main function without importing built-in backends
 runAgda' :: [Backend] -> IO ()

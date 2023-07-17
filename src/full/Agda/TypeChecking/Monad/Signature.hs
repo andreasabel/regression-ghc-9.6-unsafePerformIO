@@ -59,7 +59,6 @@ import {-# SOURCE #-} Agda.TypeChecking.Reduce
 import {-# SOURCE #-} Agda.TypeChecking.Opacity
 
 import {-# SOURCE #-} Agda.Compiler.Treeless.Erase
-import {-# SOURCE #-} Agda.Compiler.Builtin
 
 import Agda.Utils.CallStack.Base
 import Agda.Utils.Either
@@ -252,7 +251,7 @@ addPragma b q s = ifM erased
       -- If we have a defined symbol, we check whether it is erasable
       Function{} ->
         locallyTC      eActiveBackendName (const $ Just b) $
-        locallyTCState stBackends         (const $ builtinBackends) $
+        locallyTCState stBackends         (const []) $
         isErasable q
      -- Otherwise (Axiom, Datatype, Record type, etc.) we keep it
       _ -> pure False

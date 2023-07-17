@@ -206,7 +206,6 @@ library
   exposed-modules:
       Agda.Benchmarking
       Agda.Compiler.Backend
-      Agda.Compiler.Builtin
       Agda.Compiler.CallCompiler
       Agda.Compiler.Common
       Agda.Compiler.ToTreeless
@@ -237,16 +236,13 @@ library
       Agda.Interaction.JSON
       Agda.Interaction.FindFile
       Agda.Interaction.Highlighting.Common
-      Agda.Interaction.Highlighting.Dot
       Agda.Interaction.Highlighting.Emacs
       Agda.Interaction.Highlighting.FromAbstract
       Agda.Interaction.Highlighting.Generate
-      Agda.Interaction.Highlighting.HTML
       Agda.Interaction.Highlighting.JSON
       Agda.Interaction.Highlighting.Precise
       Agda.Interaction.Highlighting.Range
       Agda.Interaction.Highlighting.Vim
-      Agda.Interaction.Highlighting.LaTeX
       Agda.Interaction.Imports
       Agda.Interaction.InteractionTop
       Agda.Interaction.Response
@@ -551,12 +547,6 @@ library
 
   other-modules:
       Paths_Agda
-      Agda.Interaction.Highlighting.Dot.Backend
-      Agda.Interaction.Highlighting.Dot.Base
-      Agda.Interaction.Highlighting.HTML.Backend
-      Agda.Interaction.Highlighting.HTML.Base
-      Agda.Interaction.Highlighting.LaTeX.Backend
-      Agda.Interaction.Highlighting.LaTeX.Base
       Agda.Interaction.Options.Base
       Agda.Interaction.Options.HasOptions
       Agda.Utils.CallStack.Base
