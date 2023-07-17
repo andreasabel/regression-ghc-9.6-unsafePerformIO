@@ -33,9 +33,6 @@ import Agda.Syntax.Common
 import Agda.Syntax.Internal
 import Agda.Syntax.Internal.MetaVars
 
-import {-# SOURCE #-} Agda.TypeChecking.Constraints () -- instance only
-import {-# SOURCE #-} Agda.TypeChecking.MetaVars () -- instance only
-
 import Agda.TypeChecking.Monad.Base
 import Agda.TypeChecking.Monad.Builtin (HasBuiltins)
 import Agda.TypeChecking.Monad.Constraints (addConstraint, MonadConstraint)
@@ -76,7 +73,7 @@ sortFitsIn :: Monad m => Sort -> Sort -> m ()
 sortFitsIn a b = return ()
 
 hasBiggerSort :: Sort -> TCM ()
-hasBiggerSort = void . inferUnivSort
+hasBiggerSort _ = return ()
 
 -- | Infer the sort of a Pi type.
 --   If we can compute the sort straight away, return that.
@@ -125,35 +122,7 @@ inferFunSort a s = do
 -- | @hasPTSRule a x.s@ checks that we can form a Pi-type @(x : a) -> b@ where @b : s@.
 --
 hasPTSRule :: Dom Type -> Abs Sort -> TCM ()
-hasPTSRule a s = do
-  reportSDoc "tc.conv.sort" 35 $ vcat
-    [ "hasPTSRule"
-    , "a =" <+> prettyTCM a
-    , "s =" <+> prettyTCM (unAbs s)
-    ]
-  if alwaysValidCodomain $ unAbs s
-  then yes
-  else do
-    sb <- reduceB =<< inferPiSort a s
-    case sb of
-      Blocked b t | neverUnblock == b -> no sb t
-      NotBlocked _ t@FunSort{}        -> no sb t
-      NotBlocked _ t@PiSort{}         -> no sb t
-      _ -> yes
-  where
-    -- Do we end in a standard sort (Prop, Type, SSet)?
-    alwaysValidCodomain = \case
-      Inf{} -> True
-      Univ{} -> True
-      FunSort _ s -> alwaysValidCodomain s
-      PiSort _ _ s -> alwaysValidCodomain $ unAbs s
-      _ -> False
-
-    yes = do
-      reportSLn "tc.conv.sort" 35 "hasPTSRule succeeded"
-    no sb t = do
-      reportSDoc "tc.conv.sort" 35 $ "hasPTSRule fails on" <+> prettyTCM sb
-      typeError $ InvalidTypeSort t
+hasPTSRule a s = return ()
 
 -- | Recursively check that an iterated function type constructed by @telePi@
 --   is well-sorted.

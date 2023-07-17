@@ -286,7 +286,6 @@ library
       Agda.Syntax.Translation.ReflectedToAbstract
       Agda.TypeChecking.CompiledClause
       Agda.TypeChecking.CompiledClause.Match
-      Agda.TypeChecking.Constraints
       Agda.TypeChecking.Coverage.Match
       Agda.TypeChecking.Coverage.SplitTree
       Agda.TypeChecking.Datatypes
@@ -298,14 +297,11 @@ library
       Agda.TypeChecking.Free.Precompute
       Agda.TypeChecking.Free.Reduce
       Agda.TypeChecking.Functions
-      Agda.TypeChecking.Implicit
       Agda.TypeChecking.Irrelevance
       Agda.TypeChecking.Level
       Agda.TypeChecking.LevelConstraints
       Agda.TypeChecking.Level.Solve
-      Agda.TypeChecking.MetaVars
       Agda.TypeChecking.MetaVars.Mention
-      Agda.TypeChecking.MetaVars.Occurs
       Agda.TypeChecking.Monad.Base
       Agda.TypeChecking.Monad.Benchmark
       Agda.TypeChecking.Monad.Builtin

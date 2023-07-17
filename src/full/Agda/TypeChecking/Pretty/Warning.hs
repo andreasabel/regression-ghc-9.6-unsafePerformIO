@@ -31,7 +31,6 @@ import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Pretty.Call
 import {-# SOURCE #-} Agda.TypeChecking.Pretty.Constraint (prettyInterestingConstraints, interestingConstraint)
 import Agda.TypeChecking.Warnings (MonadWarning, isUnsolvedWarning, onlyShowIfUnsolved, classifyWarning, WhichWarnings(..), warning_)
-import {-# SOURCE #-} Agda.TypeChecking.MetaVars
 import Agda.TypeChecking.Monad.Constraints (getAllConstraints)
 
 import Agda.Syntax.Common ( ImportedName'(..), fromImportedName, partitionImportedNames )
@@ -508,15 +507,7 @@ isBoundaryConstraint
   :: (ReadTCState m, MonadTCM m)
   => ProblemConstraint
   -> m (Maybe Range)
-isBoundaryConstraint c =
-  enterClosure (theConstraint c) $ \case
-    ValueCmp _ _ (MetaV mid xs) y | Just xs <- allApplyElims xs ->
-      fmap g <$> liftTCM (isFaceConstraint mid xs)
-    ValueCmp _ _ y (MetaV mid xs) | Just xs <- allApplyElims xs ->
-      fmap g <$> liftTCM (isFaceConstraint mid xs)
-    _ -> pure Nothing
-  where
-    g (a, _, _, _) = getRange a
+isBoundaryConstraint c = return Nothing
 
 getAllUnsolvedWarnings :: (MonadFail m, ReadTCState m, MonadWarning m, MonadTCM m) => m [TCWarning]
 getAllUnsolvedWarnings = do
