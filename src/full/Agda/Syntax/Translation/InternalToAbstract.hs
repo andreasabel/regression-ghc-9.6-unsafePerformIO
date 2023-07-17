@@ -56,7 +56,6 @@ import Agda.TypeChecking.Reduce
 import {-# SOURCE #-} Agda.TypeChecking.Records
 import Agda.TypeChecking.CompiledClause (CompiledClauses'(Fail))
 import Agda.TypeChecking.DisplayForm
-import Agda.TypeChecking.Level
 import {-# SOURCE #-} Agda.TypeChecking.Datatypes
 import Agda.TypeChecking.Free
 import Agda.TypeChecking.Substitute
@@ -1462,7 +1461,7 @@ instance Reify Level where
   type ReifiesTo Level = Expr
 
   reifyWhen = reifyWhenE
-  reify l   = ifM haveLevels (reify =<< reallyUnLevelView l) $ {-else-} do
+  reify l   = do
     -- Andreas, 2017-09-18, issue #2754
     -- While type checking the level builtins, they are not
     -- available for debug printing.  Thus, print some garbage instead.

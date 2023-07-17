@@ -12,7 +12,6 @@ import Agda.Syntax.Internal
 import Agda.TypeChecking.Monad.Base
 import Agda.TypeChecking.Monad.Context
 import Agda.TypeChecking.Monad.Debug
-import Agda.TypeChecking.Level
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
@@ -95,6 +94,5 @@ getDef :: Term -> TCM (Maybe QName)
 getDef t = reduce t >>= \case
   Def d _    -> return $ Just d
   Lam _ v    -> underAbstraction_ v getDef
-  Level v    -> getDef =<< reallyUnLevelView v
   DontCare v -> getDef v
   _          -> return Nothing

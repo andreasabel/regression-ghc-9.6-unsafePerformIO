@@ -20,7 +20,6 @@ import Agda.Syntax.Scope.Base (inverseScopeLookupName)
 
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Substitute
-import Agda.TypeChecking.Level
 import Agda.TypeChecking.Reduce (instantiate)
 
 import Agda.Utils.Functor
@@ -177,9 +176,7 @@ instance Match Term where
     (Lit l, Lit l')      | l == l' -> return Map.empty
     (Lam h p, Lam h' v)  | h == h' -> match (shiftWindow w) (unAbs p) (unAbs v)
     (p, v)               | p == v  -> return Map.empty  -- TODO: this is wrong (this is why we lifted the rhs before)
-    (p, Level l)                   -> match w p =<< reallyUnLevelView l
     (Sort ps, Sort pv)             -> match w ps pv
-    (p, Sort (Type v))             -> match w p =<< reallyUnLevelView v
     _                              -> mzero
 
 instance Match Sort where
@@ -189,10 +186,7 @@ instance Match Sort where
     _          -> mzero
 
 instance Match Level where
-  match w p v = do
-    p <- reallyUnLevelView p
-    v <- reallyUnLevelView v
-    match w p v
+  match w p v = undefined
 
 -- | Substitute terms with origin into display terms,
 --   replacing variables along with their origins.
