@@ -289,7 +289,6 @@ library
       Agda.TypeChecking.Constraints
       Agda.TypeChecking.Coverage.Match
       Agda.TypeChecking.Coverage.SplitTree
-      Agda.TypeChecking.Coverage.SplitClause
       Agda.TypeChecking.Datatypes
       Agda.TypeChecking.DisplayForm
       Agda.TypeChecking.DropArgs
