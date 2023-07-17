@@ -332,7 +332,6 @@ library
       Agda.TypeChecking.Pretty.Warning
       Agda.TypeChecking.Records
       Agda.TypeChecking.Reduce
-      Agda.TypeChecking.Reduce.Fast
       Agda.TypeChecking.Reduce.Monad
       Agda.TypeChecking.Sort
       Agda.TypeChecking.Substitute

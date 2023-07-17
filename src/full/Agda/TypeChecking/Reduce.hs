@@ -56,7 +56,6 @@ import Agda.TypeChecking.Reduce.Monad
 import {-# SOURCE #-} Agda.TypeChecking.CompiledClause.Match
 import {-# SOURCE #-} Agda.TypeChecking.Patterns.Match
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
-import {-# SOURCE #-} Agda.TypeChecking.Reduce.Fast
 
 import Agda.Utils.Functor
 import Agda.Utils.Lens
@@ -529,20 +528,7 @@ shouldTryFastReduce :: ReduceM Bool
 shouldTryFastReduce = optFastReduce <$> pragmaOptions
 
 maybeFastReduceTerm :: Term -> ReduceM (Blocked Term)
-maybeFastReduceTerm v = do
-  let tryFast = case v of
-                  Def{}   -> True
-                  Con{}   -> True
-                  MetaV{} -> True
-                  _       -> False
-  if not tryFast then slowReduceTerm v
-                 else
-    case v of
-      MetaV x _ -> ifM (isOpen x) (return $ blocked x v) (maybeFast v)
-      _         -> maybeFast v
-  where
-    isOpen x = isOpenMeta <$> lookupMetaInstantiation x
-    maybeFast v = ifM shouldTryFastReduce (fastReduce v) (slowReduceTerm v)
+maybeFastReduceTerm v = slowReduceTerm v
 
 slowReduceTerm :: Term -> ReduceM (Blocked Term)
 slowReduceTerm v = do
@@ -1105,7 +1091,7 @@ instance Normalise t => Normalise (Type' t) where
     normalise' (El s t) = El <$> normalise' s <*> normalise' t
 
 instance Normalise Term where
-    normalise' v = ifM shouldTryFastReduce (fastNormalise v) (slowNormaliseArgs =<< reduce' v)
+    normalise' v = slowNormaliseArgs =<< reduce' v
 
 slowNormaliseArgs :: Term -> ReduceM Term
 slowNormaliseArgs = \case
