@@ -64,7 +64,6 @@ import Agda.Interaction.FindFile
 import Agda.Interaction.Library
 import Agda.Interaction.Options
 import qualified Agda.Interaction.Options.Lenses as Lens
-import Agda.Interaction.Options.Warnings (unsolvedWarnings)
 
 import Agda.Utils.FileName
 import Agda.Utils.Maybe
@@ -236,7 +235,7 @@ alreadyVisited :: TopLevelModuleName ->
                   PragmaOptions ->
                   TCM ModuleInfo ->
                   TCM ModuleInfo
-alreadyVisited x isMain currentOptions getModule =
+alreadyVisited x isMain _currentOptions getModule =
   case isMain of
     MainInterface TypeCheck                       -> useExistingOrLoadAndRecordVisited ModuleTypeChecked
     NotMainInterface                              -> useExistingOrLoadAndRecordVisited ModuleTypeChecked
@@ -262,23 +261,12 @@ alreadyVisited x isMain currentOptions getModule =
 
     reportSLn "import.visit" 10 $ "  Already visited " ++ prettyShow x
 
-    lift $ processResultingModule mi
-
-  processResultingModule :: ModuleInfo -> TCM ModuleInfo
-  processResultingModule mi = do
-    let ModuleInfo { miInterface = i, miPrimitive = isPrim, miWarnings = ws } = mi
-
-    -- Check that imported options are compatible with current ones (issue #2487),
-    -- but give primitive modules a pass
-    -- compute updated warnings if needed
-    wt <- fromMaybe ws <$> (getOptionsCompatibilityWarnings isMain isPrim currentOptions i)
-
-    return mi { miWarnings = wt }
+    lift $ return mi
 
   loadAndRecordVisited :: TCM ModuleInfo
   loadAndRecordVisited = do
     reportSLn "import.visit" 5 $ "  Getting interface for " ++ prettyShow x
-    mi <- processResultingModule =<< getModule
+    mi <- getModule
     reportSLn "import.visit" 5 $ "  Now we've looked at " ++ prettyShow x
 
     -- Interfaces are not stored if we are only scope-checking, or
@@ -447,42 +435,6 @@ getInterface x isMain msrc =
         MainInterface _ -> createInterface x file isMain msrc
         NotMainInterface -> createInterfaceIsolated x file msrc
 
--- | Check if the options used for checking an imported module are
---   compatible with the current options. Raises Non-fatal errors if
---   not.
-checkOptionsCompatible ::
-  PragmaOptions -> PragmaOptions -> TopLevelModuleName -> TCM Bool
-checkOptionsCompatible current imported importedModule = flip execStateT True $ do
-  reportSDoc "import.iface.options" 5 $ P.nest 2 $ "current options  =" P.<+> showOptions current
-  reportSDoc "import.iface.options" 5 $ P.nest 2 $ "imported options =" P.<+> showOptions imported
-  forM_ infectiveCoinfectiveOptions $ \opt -> do
-    unless (icOptionOK opt current imported) $ do
-      put False
-      warning $
-        (case icOptionKind opt of
-           Infective   -> InfectiveImport
-           Coinfective -> CoInfectiveImport)
-        (icOptionWarning opt importedModule)
-  where
-  showOptions opts =
-    P.prettyList $
-    map (\opt -> (P.text (icOptionDescription opt) <> ": ") P.<+>
-                 P.pretty (icOptionActive opt opts))
-      infectiveCoinfectiveOptions
-
--- | Compare options and return collected warnings.
--- | Returns `Nothing` if warning collection was skipped.
-
-getOptionsCompatibilityWarnings :: MainInterface -> Bool -> PragmaOptions -> Interface -> TCM (Maybe [TCWarning])
-getOptionsCompatibilityWarnings isMain isPrim currentOptions i = runMaybeT $ exceptToMaybeT $ do
-  -- We're just dropping these reasons-for-skipping messages for now.
-  -- They weren't logged before, but they're nice for documenting the early returns.
-  when isPrim $
-    throwError "Options consistency checking disabled for always-available primitive module"
-  whenM (lift $ checkOptionsCompatible currentOptions (iOptionsUsed i)
-                  (iTopLevelModuleName i)) $
-    throwError "No warnings to collect because options were compatible"
-  lift $ getAllWarnings' isMain ErrorWarnings
 
 
 loadDecodedModule
@@ -712,14 +664,6 @@ createInterface mname file isMain msrc = do
       , miPrimitive = isPrimitiveModule
       , miMode = moduleCheckMode isMain
       }
-
--- | Expert version of 'getAllWarnings'; if 'isMain' is a
--- 'MainInterface', the warnings definitely include also unsolved
--- warnings.
-
-getAllWarnings' :: (MonadFail m, ReadTCState m, MonadWarning m, MonadTCM m) => MainInterface -> WhichWarnings -> m [TCWarning]
-getAllWarnings' (MainInterface _) = getAllWarningsPreserving unsolvedWarnings
-getAllWarnings' NotMainInterface  = getAllWarningsPreserving Set.empty
 
 moduleHash :: TopLevelModuleName -> TCM Hash
 moduleHash m = iFullHash <$> getNonMainInterface m Nothing
