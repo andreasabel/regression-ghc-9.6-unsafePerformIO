@@ -209,10 +209,6 @@ library
       Agda.Compiler.Builtin
       Agda.Compiler.CallCompiler
       Agda.Compiler.Common
-      Agda.Compiler.JS.Compiler
-      Agda.Compiler.JS.Syntax
-      Agda.Compiler.JS.Substitution
-      Agda.Compiler.JS.Pretty
       Agda.Compiler.MAlonzo.Coerce
       Agda.Compiler.MAlonzo.Compiler
       Agda.Compiler.MAlonzo.Encode
