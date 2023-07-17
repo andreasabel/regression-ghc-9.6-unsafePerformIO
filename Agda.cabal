@@ -369,13 +369,6 @@ library
       Agda.TypeChecking.Reduce.Fast
       Agda.TypeChecking.Reduce.Monad
       Agda.TypeChecking.Rules.Display
-      Agda.TypeChecking.Rules.LHS
-      Agda.TypeChecking.Rules.LHS.Implicit
-      Agda.TypeChecking.Rules.LHS.Problem
-      Agda.TypeChecking.Rules.LHS.ProblemRest
-      Agda.TypeChecking.Rules.LHS.Unify
-      Agda.TypeChecking.Rules.LHS.Unify.Types
-      Agda.TypeChecking.Rules.LHS.Unify.LeftInverse
       Agda.TypeChecking.SizedTypes
       Agda.TypeChecking.SizedTypes.Solve
       Agda.TypeChecking.SizedTypes.Syntax
