@@ -284,7 +284,6 @@ library
       Agda.Syntax.Translation.ConcreteToAbstract
       Agda.Syntax.Translation.InternalToAbstract
       Agda.Syntax.Translation.ReflectedToAbstract
-      Agda.TheTypeChecker
       Agda.TypeChecking.Abstract
       Agda.TypeChecking.CheckInternal
       Agda.TypeChecking.CompiledClause
