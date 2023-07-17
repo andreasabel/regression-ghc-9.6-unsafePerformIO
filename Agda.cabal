@@ -320,7 +320,6 @@ library
       Agda.TypeChecking.Irrelevance
       Agda.TypeChecking.Level
       Agda.TypeChecking.LevelConstraints
-      Agda.TypeChecking.Lock
       Agda.TypeChecking.Level.Solve
       Agda.TypeChecking.MetaVars
       Agda.TypeChecking.MetaVars.Mention
@@ -390,7 +389,6 @@ library
       Agda.TypeChecking.Rules.LHS.Unify
       Agda.TypeChecking.Rules.LHS.Unify.Types
       Agda.TypeChecking.Rules.LHS.Unify.LeftInverse
-      Agda.TypeChecking.Rules.Record
       Agda.TypeChecking.Rules.Term
       Agda.TypeChecking.SizedTypes
       Agda.TypeChecking.SizedTypes.Solve

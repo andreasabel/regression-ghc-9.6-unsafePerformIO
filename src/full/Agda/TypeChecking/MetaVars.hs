@@ -38,7 +38,6 @@ import qualified Agda.TypeChecking.SyntacticEquality as SynEq
 import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Constraints
 import Agda.TypeChecking.Free
-import Agda.TypeChecking.Lock
 import Agda.TypeChecking.Level (levelType)
 import Agda.TypeChecking.Records
 import Agda.TypeChecking.Pretty
@@ -1041,24 +1040,6 @@ assign dir x args v target = addOrUnblocker (unblockOnMeta x) $ do
               Left ()   -> do
                 block <- updateBlocker $ unblockOnAnyMetaIn v
                 addOrUnblocker block $ attemptPruning x args fvs
-
-          -- Check ids is time respecting.
-          () <- do
-            let idvars = map (mapSnd allFreeVars) ids
-            -- earlierThan α v := v "arrives" before α
-            let earlierThan l j = j > l
-            TelV tel' _ <- telViewUpToPath (length args) t
-            forM_ ids $ \(i,u) -> do
-              d <- lookupBV i
-              case getLock (getArgInfo d) of
-                IsNotLock -> pure ()
-                IsLock{} -> do
-                let us = IntSet.unions $ map snd $ filter (earlierThan i . fst) idvars
-                -- us Earlier than u
-                addContext tel' $ checkEarlierThan u us
-                  `catchError` \case
-                     TypeError{} -> patternViolation (unblockOnMeta x) -- If the earlier check hard-fails we need to
-                     err         -> throwError err                     -- solve this meta in some other way.
 
           let n = length args
           TelV tel' _ <- telViewUpToPath n t
