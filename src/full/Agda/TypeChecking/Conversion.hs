@@ -41,7 +41,6 @@ import Agda.TypeChecking.Free
 import Agda.TypeChecking.Datatypes (getConType, getFullyAppliedConType)
 import Agda.TypeChecking.Records
 import Agda.TypeChecking.Pretty
-import Agda.TypeChecking.Injectivity
 import Agda.TypeChecking.Level
 import Agda.TypeChecking.Implicit (implicitArgs)
 import Agda.TypeChecking.Irrelevance
@@ -459,8 +458,6 @@ compareAtom cmp t m n =
       _ | MetaV x es <- ignoreBlocking mb -> assign dir x es n
       _ | MetaV x es <- ignoreBlocking nb -> assign rid x es m
       (Blocked{}, Blocked{}) | not cmpBlocked  -> checkDefinitionalEquality
-      (Blocked b _, _) | not cmpBlocked -> useInjectivity (fromCmp cmp) b t m n   -- The blocked term  goes first
-      (_, Blocked b _) | not cmpBlocked -> useInjectivity (flipCmp $ fromCmp cmp) b t n m
       bs -> do
         blockOnError blocker $ do
         -- -- Andreas, 2013-10-20 put projection-like function
