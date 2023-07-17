@@ -23,7 +23,6 @@ import Agda.Syntax.Internal
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Datatypes (getNumberOfParameters)
 import Agda.TypeChecking.Pretty
-import Agda.TypeChecking.SizedTypes
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Reduce
@@ -333,15 +332,6 @@ checkSizeIndex d i a = do
     , "  and has size index (successor(s) of) " <+> prettyTCM (var i)
     ]
   case unEl a of
-    Def d0 es -> do
-      whenNothingM (sameDef d d0) __IMPOSSIBLE__
-      np <- fromMaybe __IMPOSSIBLE__ <$> getNumberOfParameters d0
-      let (pars, Apply ix : ixs) = splitAt np es
-      s <- deepSizeView $ unArg ix
-      case s of
-        DSizeVar (ProjectedVar j []) _ | i == j
-          -> return $ not $ freeIn i (pars ++ ixs)
-        _ -> return False
     _ -> __IMPOSSIBLE__
 
 -- | @polarity i a@ computes the least polarity of de Bruijn index @i@

@@ -388,11 +388,9 @@ useInjectivity dir blocker ty blk neu = locallyTC eInjectivityDepth succ $ do
                                     -- We can't invert in this case, since we can't
                                     -- tell the difference between a solution that makes
                                     -- the blocked term neutral and one that makes progress.
-          Just hd -> invertFunction cmp blk inv hd fallback err success
-            where err = typeError $ app (\ u v -> UnequalTerms cmp u v ty) blk neu
+
   where
     fallback     = addConstraint blocker $ app (ValueCmp cmp ty) blk neu
-    success blk' = app (compareAs cmp ty) blk' neu
 
     cmpApp :: (Comparison, (a -> a -> b) -> a -> a -> b)
     cmpApp = case dir of
@@ -498,12 +496,4 @@ invertFunction cmp blk (Inv f blkArgs hdMap) hd fallback err success = do
 
 forcePiUsingInjectivity :: Type -> TCM Type
 forcePiUsingInjectivity t = reduceB t >>= \ case
-    Blocked _ blkTy -> do
-      let blk = unEl blkTy
-      inv <- functionInverse blk
-      blkTy <$ invertFunction CmpEq blk inv PiHead fallback err success
     NotBlocked _ t -> return t
-  where
-    fallback  = return ()
-    err       = typeError (ShouldBePi t)
-    success _ = return ()

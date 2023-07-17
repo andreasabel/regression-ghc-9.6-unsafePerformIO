@@ -369,11 +369,6 @@ library
       Agda.TypeChecking.Reduce.Fast
       Agda.TypeChecking.Reduce.Monad
       Agda.TypeChecking.Rules.Display
-      Agda.TypeChecking.SizedTypes
-      Agda.TypeChecking.SizedTypes.Solve
-      Agda.TypeChecking.SizedTypes.Syntax
-      Agda.TypeChecking.SizedTypes.Utils
-      Agda.TypeChecking.SizedTypes.WarshallSolver
       Agda.TypeChecking.Sort
       Agda.TypeChecking.Substitute
       Agda.TypeChecking.Substitute.Class

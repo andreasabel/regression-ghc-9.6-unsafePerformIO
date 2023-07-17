@@ -42,7 +42,6 @@ import Agda.TypeChecking.Level (levelType)
 import Agda.TypeChecking.Records
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.EtaContract
-import Agda.TypeChecking.SizedTypes (boundedSizeMetaHook, isSizeProblem)
 import {-# SOURCE #-} Agda.TypeChecking.Conversion
 
 import Agda.TypeChecking.MetaVars.Occurs
@@ -296,7 +295,6 @@ newValueMetaCtx' frozen b cmp a tel perm vs = do
   etaExpandMetaSafe x
   -- Andreas, 2012-09-24: for Metas X : Size< u add constraint X+1 <= u
   let u = MetaV x $ map Apply vs
-  boundedSizeMetaHook u tel a
   return (x, u)
 
 newTelMeta :: MonadMetaSolver m => Telescope -> m Args
@@ -521,9 +519,7 @@ blockTermOnProblem
 blockTermOnProblem t v pid = do
   -- Andreas, 2012-09-27 do not block on unsolved size constraints
   solved <- isProblemSolved pid
-  ifM (return solved `or2M` isSizeProblem pid)
-      (v <$ reportSLn "tc.meta.blocked" 20 ("Not blocking because " ++ show pid ++ " is " ++
-                                            if solved then "solved" else "a size problem")) $ do
+  do
     i   <- createMetaInfo
     es  <- map Apply <$> getContextArgs
     tel <- getContextTelescope
@@ -881,7 +877,7 @@ assign dir x args v target = addOrUnblocker (unblockOnMeta x) $ do
   -- Turn the assignment problem @_X args >= SizeLt u@ into
   -- @_X args = SizeLt (_Y args@ and constraint
   -- @_Y args >= u@.
-  subtypingForSizeLt dir x mvar t args v $ \ v -> do
+  do
 
     reportSDoc "tc.meta.assign" 25 $ "v = " <+> prettyTCM v
     reportSDoc "tc.meta.assign.proj" 45 $ do
@@ -1368,36 +1364,7 @@ subtypingForSizeLt
   -> Term             -- ^ Its to-be-assigned value @v@, such that @x args `dir` v@.
   -> (Term -> TCM ()) -- ^ Continuation taking its possibly assigned value.
   -> TCM ()
-subtypingForSizeLt DirEq x mvar t args v cont = cont v
-subtypingForSizeLt dir   x mvar t args v cont = do
-  let fallback = cont v
-  -- Check whether we have built-ins SIZE and SIZELT
-  (mSize, mSizeLt) <- getBuiltinSize
-  caseMaybe mSize   fallback $ \ qSize   -> do
-    caseMaybe mSizeLt fallback $ \ qSizeLt -> do
-      -- Check whether v is a SIZELT
-      v <- reduce v
-      case v of
-        Def q [Apply (Arg ai u)] | q == qSizeLt -> do
-          -- Clone the meta into a new size meta @y@.
-          -- To this end, we swap the target of t for Size.
-          TelV tel _ <- telView t
-          let size = sizeType_ qSize
-              t'   = telePi tel size
-          y <- newMeta Instantiable (mvInfo mvar) (mvPriority mvar) (mvPermutation mvar)
-                       (HasType __IMPOSSIBLE__ CmpLeq t')
-          -- Note: no eta-expansion of new meta possible/necessary.
-          -- Add the size constraint @y args `dir` u@.
-          let yArgs = MetaV y $ map Apply args
-          addConstraint (unblockOnMeta y) $ dirToCmp (`ValueCmp` AsSizes) dir yArgs u
-          -- We continue with the new assignment problem, and install
-          -- an exception handler, since we created a meta and a constraint,
-          -- so we cannot fall back to the original handler.
-          let xArgs = MetaV x $ map Apply args
-              v'    = Def qSizeLt [Apply $ Arg ai yArgs]
-              c     = dirToCmp (`ValueCmp` (AsTermsOf sizeUniv)) dir xArgs v'
-          catchConstraint c $ cont v'
-        _ -> fallback
+subtypingForSizeLt _ x mvar t args v cont = cont v
 
 -- | Eta-expand bound variables like @z@ in @X (fst z)@.
 expandProjectedVars

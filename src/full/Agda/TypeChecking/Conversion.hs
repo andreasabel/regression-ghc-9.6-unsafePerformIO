@@ -44,7 +44,6 @@ import Agda.TypeChecking.Records
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Injectivity
 import Agda.TypeChecking.Polarity
-import Agda.TypeChecking.SizedTypes
 import Agda.TypeChecking.Level
 import Agda.TypeChecking.Implicit (implicitArgs)
 import Agda.TypeChecking.Irrelevance
@@ -275,7 +274,6 @@ compareAsDir dir a = dirToCmp (`compareAs'` a) dir
 compareAs' :: forall m. MonadConversion m => Comparison -> CompareAs -> Term -> Term -> m ()
 compareAs' cmp tt m n = case tt of
   AsTermsOf a -> compareTerm' cmp a m n
-  AsSizes     -> compareSizes cmp m n
   AsTypes     -> compareAtom cmp AsTypes m n
 
 compareTerm' :: forall m. MonadConversion m => Comparison -> Type -> Term -> Term -> m ()
@@ -299,7 +297,6 @@ compareTerm' cmp a m n =
       ]
     blockOnError bs $ case s of
       Prop{} | propIrr -> compareIrrelevant a' m n
-      _    | isSize   -> compareSizes cmp m n
       _               -> case unEl a' of
         a | Just a == mlvl -> do
           a <- levelView m
@@ -567,7 +564,6 @@ compareAtom cmp t m n =
               unlessM (bothAbsurd f f') $ do
 
               -- 2. If the heads are unequal, the only chance is subtyping between SIZE and SIZELT.
-              if f /= f' then trySizeUniv cmp t m n f es f' es' else do
 
               -- 3. If the heads are equal:
               -- 3a. If there are no arguments, we are done.
@@ -1182,8 +1178,6 @@ coerceSize leqType v t1 t2 = verboseBracket "tc.conv.size.coerce" 45 "coerceSize
       -- Andreas, 2017-01-20, issue #2329:
       -- If v is not a size suitable for the solver, like a neutral term,
       -- we can only rely on the type.
-      mv <- sizeMaxView v
-      if any (\case{ DOtherSize{} -> True; _ -> False }) mv then fallback else do
       -- Andreas, 2015-02-11 do not instantiate metas here (triggers issue 1203).
       unlessM (tryConversion $ dontAssignMetas $ leqType t1 t2) $ do
         -- A (most probably weaker) alternative is to just check syn.eq.
@@ -1202,11 +1196,9 @@ coerceSize leqType v t1 t2 = verboseBracket "tc.conv.size.coerce" 45 "coerceSize
                 -- Issue 1203: For now, just treat v < v2 as suc v <= v2
                 -- TODO: Need proper < comparison
                 vinc <- sizeSuc 1 v
-                compareSizes CmpLeq vinc v2
                 done
               -- @v2 = a2 + 1@: In this case, we can try @v <= a2@
               SizeSuc a2 -> do
-                compareSizes CmpLeq v a2
                 done  -- to pass Issue 1136
 
 ---------------------------------------------------------------------------

@@ -19,7 +19,6 @@ import Agda.TypeChecking.InstanceArguments
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.LevelConstraints
-import Agda.TypeChecking.SizedTypes
 import Agda.TypeChecking.Sort
 import Agda.TypeChecking.MetaVars.Mention
 import Agda.TypeChecking.Warnings
