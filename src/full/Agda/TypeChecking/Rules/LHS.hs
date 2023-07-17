@@ -48,7 +48,6 @@ import Agda.TypeChecking.Monad
 import qualified Agda.TypeChecking.Monad.Benchmark as Bench
 import Agda.TypeChecking.Conversion
 import Agda.TypeChecking.Constraints
-import Agda.TypeChecking.CheckInternal (checkInternal)
 import Agda.TypeChecking.Datatypes hiding (isDataOrRecordType)
 import Agda.TypeChecking.Errors (dropTopLevelModule)
 import Agda.TypeChecking.Irrelevance
@@ -591,11 +590,7 @@ bindAsPatterns (AsB x v a m : asb) ret = do
 -- | Since with-abstraction can change the type of a variable, we have to
 --   recheck the stripped with patterns when checking a with function.
 recheckStrippedWithPattern :: ProblemEq -> TCM ()
-recheckStrippedWithPattern (ProblemEq p v a) = checkInternal v CmpLeq (unDom a)
-  `catchError` \_ -> typeError . GenericDocError =<< vcat
-    [ "Ill-typed pattern after with abstraction: " <+> prettyA p
-    , "(perhaps you can replace it by `_`?)"
-    ]
+recheckStrippedWithPattern (ProblemEq p v a) = return ()
 
 -- | Result of checking the LHS of a clause.
 data LHSResult = LHSResult

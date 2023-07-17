@@ -5,7 +5,6 @@ module Agda.TypeChecking.EtaExpand where
 import Agda.Syntax.Common
 import Agda.Syntax.Internal
 
-import Agda.TypeChecking.CheckInternal
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Records
 import Agda.TypeChecking.Reduce
@@ -28,7 +27,4 @@ etaExpandOnce a v = reduce a >>= \case
 -- | Eta-expand functions and expressions of eta-record
 -- type wherever possible.
 deepEtaExpand :: Term -> Type -> TCM Term
-deepEtaExpand v a = checkInternal' etaExpandAction v CmpLeq a
-
-etaExpandAction :: PureTCM m => Action m
-etaExpandAction = defaultAction { preAction = etaExpandOnce  }
+deepEtaExpand v a = return v

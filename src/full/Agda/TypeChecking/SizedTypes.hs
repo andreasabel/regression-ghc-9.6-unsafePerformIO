@@ -24,7 +24,6 @@ import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
 import {-# SOURCE #-} Agda.TypeChecking.MetaVars
-import {-# SOURCE #-} Agda.TypeChecking.CheckInternal (MonadCheckInternal, infer)
 import {-# SOURCE #-} Agda.TypeChecking.Conversion
 import {-# SOURCE #-} Agda.TypeChecking.Constraints
 
@@ -186,11 +185,6 @@ checkSizeVarNeverZero i = do
 --   If @x : Size< a@, then @a@ is returned.
 isBounded :: PureTCM m => Nat -> m BoundedSize
 isBounded i = isBoundedSizeType =<< typeOfBV i
-
-isBoundedProjVar
-  :: (MonadCheckInternal m, PureTCM m)
-  => ProjectedVar -> m BoundedSize
-isBoundedProjVar pv = isBoundedSizeType =<< infer (unviewProjectedVar pv)
 
 isBoundedSizeType :: PureTCM m => Type -> m BoundedSize
 isBoundedSizeType t =
@@ -355,43 +349,7 @@ compareBelowMax u vs = verboseBracket "tc.conv.size" 45 "compareBelowMax" $ do
   alt c1 c2 = c1 `catchError` const c2
 
 compareSizeViews :: (MonadConversion m) => Comparison -> DeepSizeView -> DeepSizeView -> m ()
-compareSizeViews cmp s1' s2' = do
-  reportSDoc "tc.conv.size" 45 $ hsep
-    [ "compareSizeViews"
-    , pretty s1'
-    , pretty cmp
-    , pretty s2'
-    ]
-  size <- sizeType
-  let (s1, s2) = removeSucs (s1', s2')
-      withUnView cont = do
-        u <- unDeepSizeView s1
-        v <- unDeepSizeView s2
-        cont u v
-      failure = withUnView $ \ u v -> typeError $ UnequalTerms cmp u v AsSizes
-      continue cmp = withUnView $ compareAtom cmp AsSizes
-  case (cmp, s1, s2) of
-    (CmpLeq, _,            DSizeInf)   -> return ()
-    (CmpEq,  DSizeInf,     DSizeInf)   -> return ()
-    (CmpEq,  DSizeVar{},   DSizeInf)   -> failure
-    (_    ,  DSizeInf,     DSizeVar{}) -> failure
-    (_    ,  DSizeInf,     _         ) -> continue CmpEq
-    (CmpLeq, DSizeVar i n, DSizeVar j m) | i == j -> unless (n <= m) failure
-    (CmpLeq, DSizeVar i n, DSizeVar j m) | i /= j -> do
-       res <- isBoundedProjVar i
-       case res of
-         BoundedNo -> failure
-         BoundedLt u' -> do
-            -- now we have i < u', in the worst case i+1 = u'
-            -- and we want to check i+n <= v
-            v <- unDeepSizeView s2
-            if n > 0 then do
-              u'' <- sizeSuc (n - 1) u'
-              compareSizes cmp u'' v
-             else compareSizes cmp u' =<< sizeSuc 1 v
-    (CmpLeq, s1,        s2)         -> withUnView $ \ u v -> do
-      unlessM (trivial u v) $ giveUp CmpLeq size u v
-    (CmpEq, s1, s2) -> continue cmp
+compareSizeViews cmp s1' s2' = return ()
 
 -- | If 'envAssignMetas' then postpone as constraint, otherwise, fail hard.
 --   Failing is required if we speculatively test several alternatives.

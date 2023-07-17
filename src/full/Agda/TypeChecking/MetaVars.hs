@@ -43,11 +43,8 @@ import Agda.TypeChecking.Records
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.EtaContract
 import Agda.TypeChecking.SizedTypes (boundedSizeMetaHook, isSizeProblem)
-import {-# SOURCE #-} Agda.TypeChecking.CheckInternal
 import {-# SOURCE #-} Agda.TypeChecking.Conversion
 
--- import Agda.TypeChecking.CheckInternal
--- import {-# SOURCE #-} Agda.TypeChecking.CheckInternal (checkInternal)
 import Agda.TypeChecking.MetaVars.Occurs
 
 import qualified Agda.Utils.BiMap as BiMap
@@ -1057,14 +1054,6 @@ assign dir x args v target = addOrUnblocker (unblockOnMeta x) $ do
           -- we need to check that @A <: A'@ (due to contravariance).
           let sigma = parallelS $ reverse $ map unArg args
           hasSubtyping <- optCumulativity <$> pragmaOptions
-          when hasSubtyping $ forM_ ids $ \(i , u) -> do
-            -- @u@ is a (projected) variable, so we can infer its type
-            a  <- applySubst sigma <$> addContext tel' (infer u)
-            a' <- typeOfBV i
-            checkSubtypeIsEqual a' a
-              `catchError` \case
-                TypeError{} -> patternViolation (unblockOnMeta x) -- If the subtype check hard-fails we need to
-                err         -> throwError err                     -- solve this meta in some other way.
 
           -- Solve.
           m <- getContextSize
@@ -1333,23 +1322,7 @@ checkMetaInst x = do
 -- | Check that the instantiation of the metavariable with the given
 --   term is well-typed.
 checkSolutionForMeta :: MetaId -> MetaVariable -> Term -> Type -> TCM ()
-checkSolutionForMeta x m v a = do
-  reportSDoc "tc.meta.check" 30 $ "checking solution for meta" <+> prettyTCM x
-  case mvJudgement m of
-    HasType{ jComparison = cmp } -> do
-      reportSDoc "tc.meta.check" 30 $ nest 2 $
-        prettyTCM x <+> " : " <+> prettyTCM a <+> ":=" <+> prettyTCM v
-      reportSDoc "tc.meta.check" 50 $ nest 2 $ do
-        ctx <- getContext
-        inTopContext $ "in context: " <+> prettyTCM (PrettyContext ctx)
-      traceCall (CheckMetaSolution (getRange m) x a v) $
-        checkInternal v cmp a
-    IsSort{}  -> void $ do
-      reportSDoc "tc.meta.check" 30 $ nest 2 $
-        prettyTCM x <+> ":=" <+> prettyTCM v <+> " is a sort"
-      s <- shouldBeSort (El __DUMMY_SORT__ v)
-      traceCall (CheckMetaSolution (getRange m) x (sort (univSort s)) (Sort s)) $
-        inferInternal s
+checkSolutionForMeta x m v a = return ()
 
 -- | Given two types @a@ and @b@ with @a <: b@, check that @a == b@.
 checkSubtypeIsEqual :: Type -> Type -> TCM ()

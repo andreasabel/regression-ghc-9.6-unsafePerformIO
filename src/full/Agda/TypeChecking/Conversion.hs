@@ -37,7 +37,6 @@ import qualified Agda.TypeChecking.SyntacticEquality as SynEq
 import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Constraints
 import Agda.TypeChecking.Conversion.Pure (pureCompareAs, runPureConversion)
-import {-# SOURCE #-} Agda.TypeChecking.CheckInternal (infer)
 import Agda.TypeChecking.Forcing (isForced, nextIsForced)
 import Agda.TypeChecking.Free
 import Agda.TypeChecking.Datatypes (getConType, getFullyAppliedConType)

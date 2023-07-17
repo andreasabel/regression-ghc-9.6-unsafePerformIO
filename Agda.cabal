@@ -285,7 +285,6 @@ library
       Agda.Syntax.Translation.InternalToAbstract
       Agda.Syntax.Translation.ReflectedToAbstract
       Agda.TypeChecking.Abstract
-      Agda.TypeChecking.CheckInternal
       Agda.TypeChecking.CompiledClause
       Agda.TypeChecking.CompiledClause.Compile
       Agda.TypeChecking.CompiledClause.Match
@@ -401,7 +400,6 @@ library
       Agda.TypeChecking.Telescope
       Agda.TypeChecking.Telescope.Path
       Agda.TypeChecking.Warnings
-      Agda.TypeChecking.With
       Agda.Utils.AffineHole
       Agda.Utils.Applicative
       Agda.Utils.AssocList

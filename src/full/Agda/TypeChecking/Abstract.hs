@@ -15,7 +15,6 @@ import Agda.TypeChecking.MetaVars
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Monad.Builtin ( equalityUnview, primEqualityName )
 import Agda.TypeChecking.Substitute
-import Agda.TypeChecking.CheckInternal
 import Agda.TypeChecking.Conversion
 import Agda.TypeChecking.Constraints
 import Agda.TypeChecking.Pretty
@@ -76,7 +75,7 @@ piAbstract (Arg info (v, IdiomType a)) b = do
                     ]
     sort <- newSortMeta
     let ty = El sort eq
-    ty <$ checkType ty
+    return ty
 
   pure $ mkPi (setHiding (getHiding info) $ defaultDom ("w", a))
        $ mkPi (setHiding NotHidden        $ defaultDom ("eq", eq))
@@ -144,34 +143,7 @@ abstractTerm a u@Con{} b v = do
   args <- map Apply <$> getContextArgs
   let n = length args
 
-  let abstr b v = do
-        m <- getContextSize
-        let (a', u') = raise (m - n) (a, u)
-        case u' `isPrefixOf` v of
-          Nothing -> return v
-          Just es -> do -- Check that the types match.
-            s <- getTC
-            do  noConstraints $ equalType a' b
-                putTC s
-                return $ Def hole (raise (m - n) args ++ es)
-              `catchError` \ _ -> do
-                reportSDoc "tc.abstract.ill-typed" 50 $
-                  sep [ "Skipping ill-typed abstraction"
-                      , nest 2 $ sep [ prettyTCM v <+> ":", nest 2 $ prettyTCM b ] ]
-                return v
-
-  -- #2763: This can fail if the user is with-abstracting incorrectly (for
-  -- instance, abstracting over a first component of a sigma without also
-  -- abstracting the second component). In this case we skip abstraction
-  -- altogether and let the type check of the final with-function type produce
-  -- the error message.
-  res <- catchError_ (checkInternal' (defaultAction { preAction = abstr }) v CmpLeq b) $ \ err -> do
-        reportSDoc "tc.abstract.ill-typed" 40 $
-          "Skipping typed abstraction over ill-typed term" <?> (prettyTCM v <?> (":" <+> prettyTCM b))
-        return v
-  reportSDoc "tc.abstract" 50 $ "Resulting abstraction" <?> prettyTCM res
-  modifySignature $ updateDefinitions $ HMap.delete hole
-  return $ absTerm (Def hole args) res
+  return $ absTerm (Def hole args) undefined
 
 abstractTerm _ u _ v = return $ absTerm u v -- Non-constructors can use untyped abstraction
 
