@@ -2,7 +2,7 @@
 {-# LANGUAGE NondecreasingIndentation #-}
 {-# LANGUAGE RecursiveDo #-}
 
--- {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall #-}
 
 {-| This module deals with finding imported modules and loading their
     interface files.
@@ -57,7 +57,6 @@ import Agda.Syntax.Translation.ConcreteToAbstract as CToA
 import Agda.TypeChecking.Errors
 import Agda.TypeChecking.Warnings hiding (warnings)
 import Agda.TypeChecking.Monad
-import Agda.TypeChecking.Primitive
 import Agda.TypeChecking.Pretty as P
 import qualified Agda.TypeChecking.Monad.Benchmark as Bench
 
@@ -75,8 +74,6 @@ import Agda.Utils.Null
 import Agda.Utils.Pretty hiding (Mode)
 import Agda.Utils.Hash
 import qualified Agda.Utils.Trie as Trie
-
-import Agda.Utils.Impossible
 
 -- | The decorated source code.
 
@@ -170,29 +167,10 @@ moduleCheckMode = \case
 mergeInterface :: Interface -> TCM ()
 mergeInterface i = do
     let sig     = iSignature i
-        builtin = Map.toAscList $ iBuiltin i
-        primOrBi = \case
-          (_, Prim x)                     -> Left x
-          (x, Builtin t)                  -> Right (x, Builtin t)
-          (x, BuiltinRewriteRelations xs) -> Right (x, BuiltinRewriteRelations xs)
-        (prim, bi') = partitionEithers $ map primOrBi builtin
-        bi      = Map.fromDistinctAscList bi'
         warns   = iWarnings i
-    bs <- getsTC stBuiltinThings
-    reportSLn "import.iface.merge" 10 "Merging interface"
-    reportSLn "import.iface.merge" 20 $
-      "  Current builtins " ++ show (Map.keys bs) ++ "\n" ++
-      "  New builtins     " ++ show (Map.keys bi)
-    let check (BuiltinName b) (Builtin x) (Builtin y)
-              | x == y    = return ()
-              | otherwise = typeError $ DuplicateBuiltinBinding b x y
-        check _ (BuiltinRewriteRelations _) (BuiltinRewriteRelations _) = return ()
-        check _ _ _ = __IMPOSSIBLE__
-    sequence_ $ Map.intersectionWithKey check bs bi
     addImportedThings
       sig
       (iMetaBindings i)
-      bi
       (iPatternSyns i)
       (iDisplayForms i)
       (iUserWarnings i)
@@ -200,18 +178,10 @@ mergeInterface i = do
       warns
       (iOpaqueBlocks i)
       (iOpaqueNames i)
-    reportSLn "import.iface.merge" 20 $
-      "  Rebinding primitives " ++ show prim
-    mapM_ rebind prim
-    where
-        rebind (x, q) = do
-            PrimImpl _ pf <- lookupPrimitiveFunction x
-            stImportedBuiltins `modifyTCLens` Map.insert (someBuiltin x) (Prim pf{ primFunName = q })
 
 addImportedThings
   :: Signature
   -> RemoteMetaStore
-  -> BuiltinThings PrimFun
   -> A.PatternSynDefns
   -> DisplayForms
   -> Map A.QName Text      -- ^ Imported user warnings
@@ -220,11 +190,10 @@ addImportedThings
   -> Map OpaqueId OpaqueBlock
   -> Map QName OpaqueId
   -> TCM ()
-addImportedThings isig metas ibuiltin patsyns display userwarn
+addImportedThings isig metas patsyns display userwarn
                   partialdefs warnings oblock oid = do
   stImports              `modifyTCLens` \ imp -> unionSignatures [imp, isig]
   stImportedMetaStore    `modifyTCLens` HMap.union metas
-  stImportedBuiltins     `modifyTCLens` \ imp -> Map.union imp ibuiltin
   stImportedUserWarnings `modifyTCLens` \ imp -> Map.union imp userwarn
   stImportedPartialDefs  `modifyTCLens` \ imp -> Set.union imp partialdefs
   stPatternSynImports    `modifyTCLens` \ imp -> Map.union imp patsyns
@@ -561,9 +530,6 @@ loadDecodedModule file mi = do
 
   reportSLn "import.iface" 5 "  New module. Let's check it out."
   lift $ mergeInterface i
-  Bench.billTo [Bench.Highlighting] $
-    lift $ ifTopLevelAndHighlightingLevelIs NonInteractive $
-      highlightFromInterface i file
 
   return mi
 
@@ -594,7 +560,6 @@ createInterfaceIsolated x file msrc = do
       opts        <- stPersistentOptions . stPersistentState <$> getTC
       isig        <- useTC stImports
       metas       <- useTC stImportedMetaStore
-      ibuiltin    <- useTC stImportedBuiltins
       display     <- useTC stImportsDisplayForms
       userwarn    <- useTC stImportedUserWarnings
       partialdefs <- useTC stImportedPartialDefs
@@ -625,7 +590,7 @@ createInterfaceIsolated x file msrc = do
                setInteractionOutputCallback ho
                stModuleToSource `setTCLens` mf
                setVisitedModules vs
-               addImportedThings isig metas ibuiltin ipatsyns display
+               addImportedThings isig metas ipatsyns display
                  userwarn partialdefs [] opaqueblk opaqueid
 
                r  <- createInterface x file NotMainInterface msrc
@@ -674,15 +639,6 @@ chaseMsg kind x file = do
            | otherwise = 2
   reportSLn "import.chase" vLvl $ concat
     [ indentation, kind, " ", prettyShow x, maybeFile ]
-
--- | Print the highlighting information contained in the given interface.
-
-highlightFromInterface
-  :: Interface
-  -> SourceFile
-     -- ^ The corresponding file.
-  -> TCM ()
-highlightFromInterface i file = return ()
 
 -- | Tries to type check a module and write out its interface. The
 -- function only writes out an interface file if it does not encounter
