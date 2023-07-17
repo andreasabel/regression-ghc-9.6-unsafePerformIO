@@ -64,50 +64,21 @@ runAgda' backends = runTCMPrettyErrors $ do
     return (bs, opts, mode)
 
   case conf of
-    Left err -> liftIO $ optionError err
-    Right (bs, opts, mode) -> do
-
-      when (optTransliterate opts) $ liftIO $ do
-        -- When --interaction or --interaction-json is used, then we
-        -- use UTF-8 when writing to stdout (and when reading from
-        -- stdin).
-        if optGHCiInteraction opts || optJSONInteraction opts
-        then optionError $
-               "The option --transliterate must not be combined with " ++
-               "--interaction or --interaction-json"
-        else do
-          -- Transliterate unsupported code points.
-          enc <- IO.mkTextEncoding
-                   (show IO.localeEncoding ++ "//TRANSLIT")
-          IO.hSetEncoding IO.stdout enc
-          IO.hSetEncoding IO.stderr enc
-
-      case mode of
-        MainModePrintHelp hp   -> liftIO $ printUsage bs hp
-        MainModePrintVersion o -> liftIO $ printVersion bs o
-        MainModePrintAgdaDir   -> liftIO $ printAgdaDir
-        MainModeRun interactor -> do
-          setTCLens stBackends bs
+    Right (bs, opts, MainModeRun interactor) -> do
           runAgdaWithOptions interactor progName opts
 
 -- | Main execution mode
 data MainMode
   = MainModeRun (Interactor ())
-  | MainModePrintHelp Help
-  | MainModePrintVersion PrintAgdaVersion
-  | MainModePrintAgdaDir
 
 -- | Determine the main execution mode to run, based on the configured backends and command line options.
 -- | This is pure.
 getMainMode :: MonadError String m => [Backend] -> Maybe AbsolutePath -> CommandLineOptions -> m MainMode
 getMainMode configuredBackends maybeInputFile opts
-  | Just hp <- optPrintHelp opts    = return $ MainModePrintHelp hp
-  | Just o  <- optPrintVersion opts = return $ MainModePrintVersion o
-  | optPrintAgdaDir opts            = return $ MainModePrintAgdaDir
   | otherwise = do
       mi <- getInteractor configuredBackends maybeInputFile opts
       -- If there was no selection whatsoever (e.g. just invoked "agda"), we just show help and exit.
-      return $ maybe (MainModePrintHelp GeneralHelp) MainModeRun mi
+      return $ maybe undefined MainModeRun mi
 
 type Interactor a
     -- Setup/initialization action.
@@ -123,61 +94,13 @@ data FrontendType
   | FrontEndJson
   | FrontEndRepl
 
--- Emacs mode. Note that it ignores the "check" action because it calls typeCheck directly.
-emacsModeInteractor :: Interactor ()
-emacsModeInteractor setup _check = undefined
-
--- JSON mode. Note that it ignores the "check" action because it calls typeCheck directly.
-jsonModeInteractor :: Interactor ()
-jsonModeInteractor setup _check = undefined
-
--- The deprecated repl mode.
-replInteractor :: Maybe AbsolutePath -> Interactor ()
-replInteractor = undefined
-
 -- The interactor to use when there are no frontends or backends specified.
 defaultInteractor :: AbsolutePath -> Interactor ()
 defaultInteractor file setup check = do setup; void $ check file
 
 getInteractor :: MonadError String m => [Backend] -> Maybe AbsolutePath -> CommandLineOptions -> m (Maybe (Interactor ()))
-getInteractor configuredBackends maybeInputFile opts =
-  case (maybeInputFile, enabledFrontends, enabledBackends) of
-    (Just inputFile, [],             _:_) -> return $ Just $ backendInteraction inputFile enabledBackends
-    (Just inputFile, [],              []) -> return $ Just $ defaultInteractor inputFile
-    (Nothing,        [],              []) -> return Nothing -- No backends, frontends, or input files specified.
-    (Nothing,        [],             _:_) -> throwError $ concat ["No input file specified for ", enabledBackendNames]
-    (_,              _:_,            _:_) -> throwError $ concat ["Cannot mix ", enabledFrontendNames, " with ", enabledBackendNames]
-    (_,              _:_:_,           []) -> throwError $ concat ["Must not specify multiple ", enabledFrontendNames]
-    (_,              [fe],            []) | optOnlyScopeChecking opts -> errorFrontendScopeChecking fe
-    (_,              [FrontEndRepl],  []) -> return $ Just $ replInteractor maybeInputFile
-    (Nothing,        [FrontEndEmacs], []) -> return $ Just $ emacsModeInteractor
-    (Nothing,        [FrontEndJson],  []) -> return $ Just $ jsonModeInteractor
-    (Just inputFile, [FrontEndEmacs], []) -> errorFrontendFileDisallowed inputFile FrontEndEmacs
-    (Just inputFile, [FrontEndJson],  []) -> errorFrontendFileDisallowed inputFile FrontEndJson
-  where
-    -- NOTE: The notion of a backend being "enabled" *just* refers to this top-level interaction mode selection. The
-    -- interaction/interactive front-ends may still invoke available backends even if they are not "enabled".
-    isBackendEnabled (Backend b) = isEnabled b (options b)
-    enabledBackends = filter isBackendEnabled configuredBackends
-    enabledFrontends = concat
-      [ [ FrontEndRepl  | optInteractive     opts ]
-      , [ FrontEndEmacs | optGHCiInteraction opts ]
-      , [ FrontEndJson  | optJSONInteraction opts ]
-      ]
-    -- Constructs messages like "(no backend)", "backend ghc", "backends (ghc, ocaml)"
-    pluralize w []  = concat ["(no ", w, ")"]
-    pluralize w [x] = concat [w, " ", x]
-    pluralize w xs  = concat [w, "s (", List.intercalate ", " xs, ")"]
-    enabledBackendNames  = pluralize "backend" [ backendName b | Backend b <- enabledBackends ]
-    enabledFrontendNames = pluralize "frontend" (frontendFlagName <$> enabledFrontends)
-    frontendFlagName = ("--" ++) . \case
-      FrontEndEmacs -> "interaction"
-      FrontEndJson -> "interaction-json"
-      FrontEndRepl -> "interactive"
-    errorFrontendScopeChecking fe = throwError $
-      concat ["The --only-scope-checking flag cannot be combined with ", frontendFlagName fe]
-    errorFrontendFileDisallowed inputFile fe = throwError $
-      concat ["Must not specify an input file (", filePath inputFile, ") with ", frontendFlagName fe]
+getInteractor configuredBackends (Just inputFile) opts =
+  return $ Just $ defaultInteractor inputFile
 
 -- | Run Agda with parsed command line options
 runAgdaWithOptions
@@ -241,53 +164,6 @@ runAgdaWithOptions interactor progName opts = do
 
 
 
--- | Print usage information.
-printUsage :: [Backend] -> Help -> IO ()
-printUsage backends hp = do
-  progName <- getProgName
-  putStr $ usage standardOptions_ progName hp
-  when (hp == GeneralHelp) $ mapM_ (putStr . backendUsage) backends
-
-backendUsage :: Backend -> String
-backendUsage (Backend b) =
-  usageInfo ("\n" ++ backendName b ++ " backend options") $
-    map void (commandLineFlags b)
-
--- | Print version information.
-printVersion :: [Backend] -> PrintAgdaVersion -> IO ()
-printVersion _ PrintAgdaNumericVersion = putStrLn versionWithCommitInfo
-printVersion backends PrintAgdaVersion = do
-  putStrLn $ "Agda version " ++ versionWithCommitInfo
-  unless (null flags) $
-    mapM_ putStrLn $ ("Built with flags (cabal -f)" :) $ map bullet flags
-  mapM_ putStrLn
-    [ bullet $ name ++ " backend version " ++ ver
-    | Backend Backend'{ backendName = name, backendVersion = Just ver } <- backends ]
-  where
-  bullet = (" - " ++)
-  -- Print cabal flags that were involved in compilation.
-  flags =
-#ifdef COUNT_CLUSTERS
-    "enable-cluster-counting: unicode cluster counting in LaTeX backend using the ICU library" :
-#endif
-#ifdef OPTIMISE_HEAVILY
-    "optimise-heavily: extra optimizations" :
-#endif
-#ifdef DEBUG
-    "debug: extra debug info" :
-#endif
-    []
-
-printAgdaDir :: IO ()
-printAgdaDir = putStrLn =<< getDataDir
-
--- | What to do for bad options.
-optionError :: String -> IO ()
-optionError err = do
-  prog <- getProgName
-  putStrLn $ "Error: " ++ err ++ "\nRun '" ++ prog ++ " --help' for help on command line options."
-  exitAgdaWith OptionError
-
 -- | Run a TCM action in IO; catch and pretty print errors.
 
 -- If some error message cannot be printed due to locale issues, then
@@ -312,7 +188,6 @@ runTCMPrettyErrors tcm = do
             s1  <- prettyError err
             let ss = filter (not . null) $ s2s ++ [s1]
             unless (null s1) (liftIO $ putStr $ unlines ss)
-            liftIO $ helpForLocaleError err
             return (Just TCMError)
       ) `catchImpossible` \e -> do
           liftIO $ putStr $ E.displayException e
@@ -335,38 +210,4 @@ runTCMPrettyErrors tcm = do
       liftIO $ do
         putStrLn "\n\nError when handling error:"
         putStrLn $ tcErrString err
-        helpForLocaleError err
       exitAgdaWith UnknownError
-
--- | If the error is an IO error, and the error message suggests that
--- the problem is related to locales or code pages, print out some
--- extra information.
-
-helpForLocaleError :: TCErr -> IO ()
-helpForLocaleError e = case e of
-  (IOException _ _ e)
-    | "invalid argument" `List.isInfixOf` show e -> msg
-  _                                              -> return ()
-  where
-  msg = putStr $ unlines
-    [ ""
-    , "This error may be due to the use of a locale or code page that does not"
-    , "support some character used in the program being type-checked."
-    , ""
-    , "If it is, then one option is to use the option --transliterate, in which"
-    , "case unsupported characters are (hopefully) replaced with something else,"
-    , "perhaps question marks. However, that could make the output harder to"
-    , "read."
-    , ""
-    , "If you want to fix the problem \"properly\", then you could try one of the"
-    , "following suggestions:"
-    , ""
-    , "* If you are using Windows, try switching to a different code page (for"
-    , "  instance by running the command 'CHCP 65001')."
-    , ""
-    , "* If you are using a Unix-like system, try using a different locale. The"
-    , "  installed locales are perhaps printed by the command 'locale -a'. If"
-    , "  you have a UTF-8 locale installed (for instance sv_SE.UTF-8), then you"
-    , "  can perhaps make Agda use this locale by running something like"
-    , "  'LC_ALL=sv_SE.UTF-8 agda <...>'."
-    ]
