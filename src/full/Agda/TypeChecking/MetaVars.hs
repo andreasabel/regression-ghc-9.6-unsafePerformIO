@@ -530,11 +530,6 @@ blockTermOnProblem t v pid = do
                     (HasType () CmpLeq $ telePi_ tel t)
                     -- we don't instantiate blocked terms
     inTopContext $ addConstraint (unblockOnProblem pid) (UnBlock x)
-    reportSDoc "tc.meta.blocked" 20 $ vcat
-      [ "blocked" <+> prettyTCM x <+> ":=" <+> inTopContext
-        (prettyTCM $ abstract tel v)
-      , "     by" <+> (prettyTCM =<< getConstraintsForProblem pid)
-      ]
     inst <- isInstantiatedMeta x
     if inst
       then instantiate (MetaV x es)
@@ -545,16 +540,10 @@ blockTermOnProblem t v pid = do
         -- constraint solving a bit more robust against instantiation order.
         -- Andreas, 2015-05-22: DontRunMetaOccursCheck to avoid Issue585-17.
         (m', v) <- newValueMeta DontRunMetaOccursCheck CmpLeq t
-        reportSDoc "tc.meta.blocked" 30
-          $   "setting twin of"
-          <+> prettyTCM m'
-          <+> "to be"
-          <+> prettyTCM x
         updateMetaVar m' (\mv -> mv { mvTwin = Just x })
         i   <- fresh
         -- This constraint is woken up when unblocking, so it doesn't need a problem id.
         cmp <- buildProblemConstraint_ (unblockOnMeta x) (ValueCmp CmpEq (AsTermsOf t) v (MetaV x es))
-        reportSDoc "tc.constr.add" 20 $ "adding constraint" <+> prettyTCM cmp
         listenToMeta (CheckConstraint i cmp) x
         return v
 
@@ -612,7 +601,6 @@ postponeTypeCheckingProblem p unblock = do
   es  <- map Apply <$> getContextArgs
   (_, v) <- newValueMeta DontRunMetaOccursCheck CmpLeq t
   cmp <- buildProblemConstraint_ (unblockOnMeta m) (ValueCmp CmpEq (AsTermsOf t) v (MetaV m es))
-  reportSDoc "tc.constr.add" 20 $ "adding constraint" <+> prettyTCM cmp
   i   <- liftTCM fresh
   listenToMeta (CheckConstraint i cmp) m
   addConstraint unblock (UnBlock m)

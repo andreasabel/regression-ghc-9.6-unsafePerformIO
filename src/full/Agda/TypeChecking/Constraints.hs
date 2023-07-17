@@ -15,7 +15,6 @@ import Agda.Syntax.Common
 import Agda.Syntax.Internal
 
 import Agda.TypeChecking.Monad
-import Agda.TypeChecking.InstanceArguments
 import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.LevelConstraints
@@ -50,21 +49,11 @@ instance MonadConstraint TCM where
 addConstraintTCM :: Blocker -> Constraint -> TCM ()
 addConstraintTCM unblock c = do
       pids <- asksTC envActiveProblems
-      reportSDoc "tc.constr.add" 20 $ hsep
-        [ "adding constraint"
-        , prettyTCM . PConstr pids unblock =<< buildClosure c
-        , "unblocker: " , prettyTCM unblock
-        ]
       -- Jesper, 2022-10-22: We should never block on a meta that is
       -- already solved.
-      forM_ (Set.toList $ allBlockingMetas unblock) $ \m ->
-        whenM (isInstantiatedMeta m) $ do
-          reportSDoc "tc.constr.add" 5 $ "Attempted to block on solved meta" <+> prettyTCM m
-          __IMPOSSIBLE__
       -- Need to reduce to reveal possibly blocking metas
       c <- reduce =<< instantiateFull c
       caseMaybeM (simpl c) {-no-} (addConstraint' unblock c) $ {-yes-} \ cs -> do
-          reportSDoc "tc.constr.add" 20 $ "  simplified:" <+> prettyList (map prettyTCM cs)
           mapM_ solveConstraint_ cs
       -- The added constraint can cause instance constraints to be solved,
       -- but only the constraints which aren’t blocked on an uninstantiated meta.
@@ -88,11 +77,6 @@ addConstraintTCM unblock c = do
           -- Get all level constraints.
           lvlcs <- instantiateFull =<< do
             List.filter (isLvl . clValue) . map theConstraint <$> getAllConstraints
-          unless (null lvlcs) $ do
-            reportSDoc "tc.constr.lvl" 40 $ vcat
-              [ "simplifying level constraint" <+> prettyTCM c
-              , nest 2 $ hang "using" 2 $ prettyTCM lvlcs
-              ]
           -- Try to simplify @c@ using the other constraints.
           return $ simplifyLevelConstraint c $ map clValue lvlcs
         | otherwise = return Nothing
@@ -233,7 +217,6 @@ solveConstraintTCM c = do
     whenProfile Profile.Constraints $ liftTCM $ tick "attempted-constraints"
     verboseBracket "tc.constr.solve" 20 "solving constraint" $ do
       pids <- asksTC envActiveProblems
-      reportSDoc "tc.constr.solve.constr" 20 $ text (show $ Set.toList pids) <+> prettyTCM c
       solveConstraint_ c
 
 solveConstraint_ :: Constraint -> TCM ()
@@ -246,10 +229,7 @@ debugConstraints :: TCM ()
 debugConstraints = verboseS "tc.constr" 50 $ do
   awake    <- useTC stAwakeConstraints
   sleeping <- useTC stSleepingConstraints
-  reportSDoc "tc.constr" 50 $ vcat
-    [ "Current constraints"
-    , nest 2 $ vcat [ "awake " <+> vcat (map prettyTCM awake)
-                    , "asleep" <+> vcat (map prettyTCM sleeping) ] ]
+  return ()
 
 -- Update the blocker after some instantiation or pruning might have happened.
 updateBlocker :: (PureTCM m) => Blocker -> m Blocker
