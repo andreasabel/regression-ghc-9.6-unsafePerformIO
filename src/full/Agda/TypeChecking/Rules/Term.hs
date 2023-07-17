@@ -15,7 +15,6 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 
 import Agda.Interaction.Options
-import Agda.Interaction.Highlighting.Generate (disambiguateRecordFields)
 
 import Agda.Syntax.Abstract (Binder, TypedBindingInfo (tbTacticAttr))
 import qualified Agda.Syntax.Abstract as A
@@ -965,11 +964,6 @@ checkRecordExpression cmp mfs e t = do
         "A record expression corresponding to an erased record " ++
         "constructor must only be used in erased settings"
 
-      -- Andreas, 2018-09-06, issue #3122.
-      -- Associate the concrete record field names used in the record expression
-      -- to their counterpart in the record type definition.
-      disambiguateRecordFields (map _nameFieldA $ lefts mfs) (map unDom $ recFields def)
-
       -- Compute the list of given fields, decorated with the ArgInfo from the record def.
       -- Andreas, 2019-03-18, issue #3122, also pick up non-visible fields from the modules.
       fs <- expandModuleAssigns mfs (map unArg cxs)
@@ -1061,10 +1055,6 @@ checkRecordUpdate cmp ei recexpr fs eupd t = do
 
         let projs = map argFromDom $ recFields defn
 
-        -- Andreas, 2018-09-06, issue #3122.
-        -- Associate the concrete record field names used in the record expression
-        -- to their counterpart in the record type definition.
-        disambiguateRecordFields (map _nameFieldA fs) (map unArg projs)
 
         -- Desugar record update expression into record expression.
         let fs' = map (\ (FieldAssignment x e) -> (x, Just e)) fs

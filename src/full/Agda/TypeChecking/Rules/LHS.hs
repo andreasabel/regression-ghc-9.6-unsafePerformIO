@@ -30,8 +30,6 @@ import qualified Data.Semigroup as Semigroup
 import Data.Map (Map)
 import qualified Data.Map as Map
 
-import Agda.Interaction.Highlighting.Generate
-  ( storeDisambiguatedConstructor, storeDisambiguatedProjection, disambiguateRecordFields)
 import Agda.Interaction.Options
 import Agda.Interaction.Options.Lenses
 
@@ -251,11 +249,6 @@ updateProblemEqs eqs = do
 
           A.RecP pi fs -> do
             axs <- map argFromDom . recFields . theDef <$> getConstInfo d
-
-            -- Andreas, 2018-09-06, issue #3122.
-            -- Associate the concrete record field names used in the record pattern
-            -- to their counterpart in the record type definition.
-            disambiguateRecordFields (map _nameFieldA fs) (map unArg axs)
 
             let cxs = map (fmap (nameConcrete . qnameName)) axs
 
@@ -1769,7 +1762,6 @@ disambiguateProjection h ambD@(AmbQ ds) b = do
           -- For highlighting, we remember which name we disambiguated to.
           -- This is safe here (fingers crossed) as we won't decide on a
           -- different projection even if we backtrack and come here again.
-          liftTCM $ storeDisambiguatedProjection d
           return (d, comatching, r, a, ai)
         other -> failure other
 
@@ -1929,10 +1921,7 @@ disambiguateConstructor ambC@(AmbQ cs) d pars = do
           -- If disambiguation succeeded with new constraints/solutions,
           -- put them into action.
           whenJust mst putTC
-          -- If there are multiple candidates for the constructor pattern, exactly one of
-          -- which type checks, remember our choice for highlighting info.
-          when (isAmbiguous ambC) $ liftTCM $
-            storeDisambiguatedConstructor (conInductive c) c0
+
           return (c,a)
 
         -- Either no candidate constructor in 'cs' type checks, or multiple candidates

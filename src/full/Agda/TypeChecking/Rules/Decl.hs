@@ -14,7 +14,6 @@ import Data.Maybe
 import qualified Data.Set as Set
 import Data.Set (Set)
 
-import Agda.Interaction.Highlighting.Generate
 import Agda.Interaction.Options
 
 import qualified Agda.Syntax.Abstract as A
@@ -103,7 +102,6 @@ checkDeclCached d = do
       (Just (Decl d',s)) | compareDecl d d' -> do
         restorePostScopeState s
         reportSLn "cache.decl" 50 $ "range: " ++ prettyShow (getRange d)
-        printSyntaxInfo (getRange d)
       _ -> do
         cleanCachedLog
         checkDeclWrap d
@@ -201,9 +199,6 @@ checkDecl d = setCurrentRange d $ do
         Nothing <$ unquoteTop (x:cs) e
 
     whenNothingM (asksTC envMutualBlock) $ do
-
-      -- Syntax highlighting.
-      highlight_ DontHightlightModuleContents d
 
       -- Defaulting of levels (only when --cumulativity)
       whenM (optCumulativity <$> pragmaOptions) $
@@ -382,59 +377,6 @@ instantiateDefinitionType q = do
 --   let def = fromMaybe __IMPOSSIBLE__ $ lookupDefinition q sig
 --   def <- instantiateFull def
 --   modifySignature $ updateDefinition q $ const def
-
-data HighlightModuleContents = DontHightlightModuleContents | DoHighlightModuleContents
-  deriving (Eq)
-
--- | Highlight a declaration. Called after checking a mutual block (to ensure
---   we have the right definitions for all names). For modules inside mutual
---   blocks we haven't highlighted their contents, but for modules not in a
---   mutual block we have. Hence the flag.
-highlight_ :: HighlightModuleContents -> A.Declaration -> TCM ()
-highlight_ hlmod d = do
-  reportSDoc "tc.decl" 45 $
-    text "Highlighting a declaration with the following spine:"
-      $$
-    text (show $ A.declarationSpine d)
-  let highlight d = generateAndPrintSyntaxInfo d Full True
-  Bench.billTo [Bench.Highlighting] $ case d of
-    A.Axiom{}                -> highlight d
-    A.Field{}                -> __IMPOSSIBLE__
-    A.Primitive{}            -> highlight d
-    A.Mutual i ds            -> mapM_ (highlight_ DoHighlightModuleContents) $ deepUnscopeDecls ds
-    A.Apply{}                -> highlight d
-    A.Import{}               -> highlight d
-    A.Pragma{}               -> highlight d
-    A.ScopedDecl{}           -> return ()
-    A.FunDef{}               -> highlight d
-    A.DataDef{}              -> highlight d
-    A.DataSig{}              -> highlight d
-    A.Open{}                 -> highlight d
-    A.PatternSynDef{}        -> highlight d
-    A.UnfoldingDecl{}        -> highlight d
-    A.Generalize{}           -> highlight d
-    A.UnquoteDecl{}          -> highlight d
-    A.UnquoteDef{}           -> highlight d
-    A.UnquoteData{}          -> highlight d
-    A.Section i er x tel ds  -> do
-      highlight (A.Section i er x tel [])
-      when (hlmod == DoHighlightModuleContents) $ mapM_ (highlight_ hlmod) (deepUnscopeDecls ds)
-    A.RecSig{}               -> highlight d
-    A.RecDef i x uc dir ps tel cs ->
-      highlight (A.RecDef i x uc dir ps dummy cs)
-      -- The telescope has already been highlighted.
-      where
-      -- Andreas, 2016-01-22, issue 1790
-      -- The expression denoting the record constructor type
-      -- is replace by a dummy expression in order to /not/
-      -- generate highlighting from it.
-      -- Simply because all the highlighting info is wrong
-      -- in the record constructor type:
-      -- i) fields become bound variables,
-      -- ii) declarations become let-bound variables.
-      -- We do not need that crap.
-      dummy = A.Lit empty $ LitString $
-        "do not highlight construct(ed/or) type"
 
 -- | Check a set of mutual names for positivity.
 checkPositivity_ :: Info.MutualInfo -> Set QName -> TCM ()

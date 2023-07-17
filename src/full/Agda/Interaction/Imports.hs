@@ -80,9 +80,6 @@ import qualified Agda.TypeChecking.Monad.Benchmark as Bench
 import Agda.TheTypeChecker
 
 import Agda.Interaction.FindFile
-import Agda.Interaction.Highlighting.Generate
-import Agda.Interaction.Highlighting.Precise  ( convert )
-import Agda.Interaction.Highlighting.Vim
 import Agda.Interaction.Library
 import Agda.Interaction.Options
 import qualified Agda.Interaction.Options.Lenses as Lens
@@ -868,11 +865,7 @@ highlightFromInterface
   -> SourceFile
      -- ^ The corresponding file.
   -> TCM ()
-highlightFromInterface i file = do
-  reportSLn "import.iface" 5 $
-    "Generating syntax info for " ++ filePath (srcFilePath file) ++
-    " (read from interface)."
-  printHighlightingInfo KeepHighlighting (iHighlighting i)
+highlightFromInterface i file = return ()
 
 -- | Read interface file corresponding to a module.
 
@@ -932,13 +925,6 @@ createInterface mname file isMain msrc = do
 
     let srcPath = srcFilePath $ srcOrigin src
 
-    fileTokenInfo <- Bench.billTo [Bench.Highlighting] $
-      generateTokenInfoFromSource
-        (let !top = srcModuleName src in
-         mkRangeFile srcPath (Just top))
-        (TL.unpack $ srcText src)
-    stTokens `modifyTCLens` (fileTokenInfo <>)
-
     setOptionsFromSourcePragmas src
     checkAttributes (srcAttributes src)
     syntactic <- optSyntacticEquality <$> pragmaOptions
@@ -961,17 +947,6 @@ createInterface mname file isMain msrc = do
 
     let ds    = topLevelDecls topLevel
         scope = topLevelScope topLevel
-
-    -- Highlighting from scope checker.
-    reportSLn "import.iface.create" 7 "Starting highlighting from scope."
-    Bench.billTo [Bench.Highlighting] $ do
-      -- Generate and print approximate syntax highlighting info.
-      ifTopLevelAndHighlightingLevelIs NonInteractive $
-        printHighlightingInfo KeepHighlighting fileTokenInfo
-      ifTopLevelAndHighlightingLevelIsOr NonInteractive onlyScope $
-        mapM_ (\ d -> generateAndPrintSyntaxInfo d Partial onlyScope) ds
-    reportSLn "import.iface.create" 7 "Finished highlighting from scope."
-
 
     -- Type checking.
 
@@ -1021,8 +996,7 @@ createInterface mname file isMain msrc = do
 
       -- Move any remaining token highlighting to stSyntaxInfo.
       toks <- useTC stTokens
-      ifTopLevelAndHighlightingLevelIs NonInteractive $
-        printHighlightingInfo KeepHighlighting toks
+
       stTokens `setTCLens` mempty
 
       -- Grabbing warnings and unsolved metas to highlight them
@@ -1032,20 +1006,11 @@ createInterface mname file isMain msrc = do
       unsolved <- getAllUnsolvedWarnings
       unless (null unsolved) $ reportSDoc "import.iface.create" 20 $
         "collected unsolved: " <> prettyTCM unsolved
-      let warningInfo =
-            convert $ foldMap warningHighlighting $ unsolved ++ warnings
 
-      stSyntaxInfo `modifyTCLens` \inf -> (inf `mappend` toks) `mappend` warningInfo
-
-      whenM (optGenerateVimFile <$> commandLineOptions) $
-        -- Generate Vim file.
-        withScope_ scope $ generateVimFile $ filePath $ srcPath
-    reportSLn "import.iface.create" 7 "Finished highlighting from type info."
+      stSyntaxInfo `modifyTCLens` \inf -> (inf `mappend` toks)
 
     setScope scope
     reportSLn "scope.top" 50 $ "SCOPE " ++ show scope
-
-    ifTopLevelAndHighlightingLevelIs NonInteractive printUnsolvedInfo
 
     -- Andreas, 2016-08-03, issue #964
     -- When open metas are allowed,

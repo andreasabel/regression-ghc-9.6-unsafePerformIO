@@ -24,8 +24,6 @@ import Data.Void
 import qualified Data.Foldable as Fold
 import qualified Data.IntSet   as IntSet
 
-import Agda.Interaction.Highlighting.Generate
-  ( storeDisambiguatedConstructor, storeDisambiguatedProjection )
 import Agda.Interaction.Options
 
 import qualified Agda.Syntax.Abstract as A
@@ -1067,7 +1065,6 @@ disambiguateConstructor cs0 args t = do
   decideOn :: ConHead -> DisambiguateConstructor
   decideOn c = do
     reportSLn "tc.check.term.con" 40 $ "  decided on: " ++ prettyShow c
-    storeDisambiguatedConstructor (conInductive c) (conName c)
     return $ Right c
 
   -- Look at simple visible arguments (variables (bound and generalizable ones) and defined names).
@@ -1272,7 +1269,6 @@ inferOrCheckProjApp e o ds args mt = do
           case forMaybe fs $ \ f -> Fold.find (unDom f ==) ds of
             [] -> refuseProjNoMatching ds
             [d] -> do
-              storeDisambiguatedProjection d
               -- checkHeadApplication will check the target type
               (, t, CheckedTarget Nothing) <$>
                 checkHeadApplication cmp e t (A.Proj o $ unambiguous d) args
@@ -1395,7 +1391,6 @@ inferOrCheckProjAppToKnownPrincipalArg e o ds args mt k v0 ta mpatm = do
         -- the term u = d v
         -- the type tb is the type of this application
         [ (_orig, (d, (pars, (_dom,u,tb)))) : _ ] -> do
-          storeDisambiguatedProjection d
 
           -- Check parameters
           tfull <- typeOfConst d

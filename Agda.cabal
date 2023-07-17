@@ -211,12 +211,6 @@ library
       Agda.Interaction.Base
       Agda.Interaction.ExitCode
       Agda.Interaction.FindFile
-      Agda.Interaction.Highlighting.Common
-      Agda.Interaction.Highlighting.FromAbstract
-      Agda.Interaction.Highlighting.Generate
-      Agda.Interaction.Highlighting.Precise
-      Agda.Interaction.Highlighting.Range
-      Agda.Interaction.Highlighting.Vim
       Agda.Interaction.Imports
       Agda.Interaction.Response
       Agda.Interaction.Monad
@@ -472,7 +466,6 @@ library
       Agda.Utils.POMonoid
       Agda.Utils.Pretty
       Agda.Utils.ProfileOptions
-      Agda.Utils.RangeMap
       Agda.Utils.SemiRing
       Agda.Utils.Semigroup
       Agda.Utils.Singleton

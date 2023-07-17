@@ -43,7 +43,6 @@ import Agda.Syntax.Parser
 
 import Agda.Interaction.Options
 import Agda.Interaction.Options.Warnings
-import {-# SOURCE #-} Agda.Interaction.Highlighting.Generate (highlightWarning)
 
 import Agda.Utils.CallStack ( CallStack, HasCallStack, withCallerCallStack )
 import Agda.Utils.Function  ( applyUnless )
@@ -71,7 +70,6 @@ instance MonadWarning m => MonadWarning (StateT s m)
 instance MonadWarning TCM where
   addWarning tcwarn = do
     stTCWarnings `modifyTCLens` add w' tcwarn
-    highlightWarning tcwarn
     where
       w' = tcWarning tcwarn
 

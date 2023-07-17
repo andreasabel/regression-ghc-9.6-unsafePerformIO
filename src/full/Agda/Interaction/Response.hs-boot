@@ -8,16 +8,8 @@ import Agda.Syntax.Concrete (Expr)
 import {-# SOURCE #-} Agda.TypeChecking.Monad.Base
     (TCM, ModuleToSource, HighlightingMethod)
 
-import Agda.Interaction.Highlighting.Precise
-    (TokenBased, HighlightingInfo)
-
 data Response
-    = Resp_HighlightingInfo
-        HighlightingInfo
-        RemoveTokenBasedHighlighting
-        HighlightingMethod
-        ModuleToSource
-    | Resp_Status Status
+    = Resp_Status Status
     | Resp_JumpToError FilePath Int32
     | Resp_InteractionPoints [InteractionId]
     | Resp_GiveAction InteractionId GiveResult
@@ -26,7 +18,6 @@ data Response
     | Resp_DisplayInfo DisplayInfo
     | Resp_RunningInfo Int String
     | Resp_ClearRunningInfo
-    | Resp_ClearHighlighting TokenBased
     | Resp_DoneAborting
     | Resp_DoneExiting
 

@@ -28,7 +28,6 @@ import Agda.Interaction.Base
   , OutputForm
   , Rewrite
   )
-import Agda.Interaction.Highlighting.Precise
 import qualified Agda.Syntax.Abstract as A
 import Agda.Syntax.Common         (InteractionId(..), Arg)
 import Agda.Syntax.Concrete       (Expr)
@@ -51,12 +50,7 @@ import System.IO
 --   so the user can have timely response even during long computations.
 
 data Response
-    = Resp_HighlightingInfo
-        HighlightingInfo
-        RemoveTokenBasedHighlighting
-        HighlightingMethod
-        ModuleToSource
-    | Resp_Status Status
+    = Resp_Status Status
     | Resp_JumpToError FilePath Int32
     | Resp_InteractionPoints [InteractionId]
     | Resp_GiveAction InteractionId GiveResult
@@ -68,7 +62,6 @@ data Response
     | Resp_RunningInfo Int String
       -- ^ The integer is the message's debug level.
     | Resp_ClearRunningInfo
-    | Resp_ClearHighlighting TokenBased
       -- ^ Clear highlighting of the given kind.
     | Resp_DoneAborting
       -- ^ A command sent when an abort command has completed
@@ -202,7 +195,6 @@ type InteractionOutputCallback = Response -> TCM ()
 
 defaultInteractionOutputCallback :: InteractionOutputCallback
 defaultInteractionOutputCallback = \case
-  Resp_HighlightingInfo {}  -> __IMPOSSIBLE__
   Resp_Status {}            -> __IMPOSSIBLE__
   Resp_JumpToError {}       -> __IMPOSSIBLE__
   Resp_InteractionPoints {} -> __IMPOSSIBLE__
@@ -214,6 +206,5 @@ defaultInteractionOutputCallback = \case
                                  putStr s
                                  hFlush stdout
   Resp_ClearRunningInfo {}  -> __IMPOSSIBLE__
-  Resp_ClearHighlighting {} -> __IMPOSSIBLE__
   Resp_DoneAborting {}      -> __IMPOSSIBLE__
   Resp_DoneExiting {}       -> __IMPOSSIBLE__

@@ -94,8 +94,6 @@ import Agda.Interaction.Options
 import Agda.Interaction.Options.Warnings
 import {-# SOURCE #-} Agda.Interaction.Response
   (InteractionOutputCallback, defaultInteractionOutputCallback)
-import Agda.Interaction.Highlighting.Precise
-  (HighlightingInfo, NameKind)
 import Agda.Interaction.Library
 
 import Agda.Utils.Benchmark (MonadBench(..))
@@ -168,7 +166,7 @@ instance Show TCState where
   show _ = "TCSt{}"
 
 data PreScopeState = PreScopeState
-  { stPreTokens             :: !HighlightingInfo
+  { stPreTokens             :: ()
     -- ^ Highlighting info for tokens and Happy parser warnings (but
     -- not for those tokens/warnings for which highlighting exists in
     -- 'stPostSyntaxInfo').
@@ -217,17 +215,12 @@ data PreScopeState = PreScopeState
   }
   deriving Generic
 
--- | Name disambiguation for the sake of highlighting.
-data DisambiguatedName = DisambiguatedName NameKind A.QName
-  deriving Generic
-type DisambiguatedNames = IntMap DisambiguatedName
-
 type ConcreteNames = Map Name [C.Name]
 
 data PostScopeState = PostScopeState
-  { stPostSyntaxInfo          :: !HighlightingInfo
+  { stPostSyntaxInfo          :: ()
     -- ^ Highlighting info.
-  , stPostDisambiguatedNames  :: !DisambiguatedNames
+  , stPostDisambiguatedNames  :: ()
     -- ^ Disambiguation carried out by the type checker.
     --   Maps position of first name character to disambiguated @'A.QName'@
     --   for each @'A.AmbiguousQName'@ already passed by the type checker.
@@ -394,7 +387,7 @@ initialMetaId = MetaId
 
 initPreScopeState :: PreScopeState
 initPreScopeState = PreScopeState
-  { stPreTokens               = mempty
+  { stPreTokens               = ()
   , stPreImports              = emptySignature
   , stPreImportedModules      = empty
   , stPreModuleToSource       = Map.empty
@@ -421,7 +414,7 @@ initPreScopeState = PreScopeState
 initPostScopeState :: PostScopeState
 initPostScopeState = PostScopeState
   { stPostSyntaxInfo           = mempty
-  , stPostDisambiguatedNames   = IntMap.empty
+  , stPostDisambiguatedNames   = ()
   , stPostOpenMetaStore        = Map.empty
   , stPostSolvedMetaStore      = Map.empty
   , stPostInteractionPoints    = empty
@@ -467,7 +460,7 @@ initState = TCSt
 -- * st-prefixed lenses
 ------------------------------------------------------------------------
 
-stTokens :: Lens' TCState HighlightingInfo
+stTokens :: Lens' TCState ()
 stTokens f s =
   f (stPreTokens (stPreScopeState s)) <&>
   \x -> s {stPreScopeState = (stPreScopeState s) {stPreTokens = x}}
@@ -622,12 +615,12 @@ stOpaqueIds f s =
   f (stPostOpaqueIds (stPostScopeState s)) <&>
   \x -> s {stPostScopeState = (stPostScopeState s) {stPostOpaqueIds = x}}
 
-stSyntaxInfo :: Lens' TCState HighlightingInfo
+stSyntaxInfo :: Lens' TCState ()
 stSyntaxInfo f s =
   f (stPostSyntaxInfo (stPostScopeState s)) <&>
   \x -> s {stPostScopeState = (stPostScopeState s) {stPostSyntaxInfo = x}}
 
-stDisambiguatedNames :: Lens' TCState DisambiguatedNames
+stDisambiguatedNames :: Lens' TCState ()
 stDisambiguatedNames f s =
   f (stPostDisambiguatedNames (stPostScopeState s)) <&>
   \x -> s {stPostScopeState = (stPostScopeState s) {stPostDisambiguatedNames = x}}
@@ -1018,7 +1011,7 @@ data Interface = Interface
     -- ^ Whether this module should raise a warning when imported
   , iBuiltin         :: BuiltinThings (PrimitiveId, QName)
   , iForeignCode     :: Map BackendName ForeignCodeStack
-  , iHighlighting    :: HighlightingInfo
+  , iHighlighting    :: ()
   , iDefaultPragmaOptions :: [OptionsPragma]
     -- ^ Pragma options set in library files.
   , iFilePragmaOptions    :: [OptionsPragma]
@@ -5580,7 +5573,6 @@ instance NFData PreScopeState
 instance NFData PostScopeState
 
 instance NFData TCState
-instance NFData DisambiguatedName
 instance NFData MutualBlock
 instance NFData OpaqueBlock
 instance NFData (BiMap RawTopLevelModuleName ModuleNameHash)
