@@ -293,7 +293,6 @@ library
       Agda.TypeChecking.Coverage.SplitTree
       Agda.TypeChecking.Coverage.SplitClause
       Agda.TypeChecking.Datatypes
-      Agda.TypeChecking.DeadCode
       Agda.TypeChecking.DisplayForm
       Agda.TypeChecking.DropArgs
       Agda.TypeChecking.Errors
@@ -343,12 +342,10 @@ library
       Agda.TypeChecking.Pretty.Call
       Agda.TypeChecking.Pretty.Constraint
       Agda.TypeChecking.Pretty.Warning
-      Agda.TypeChecking.RecordPatterns
       Agda.TypeChecking.Records
       Agda.TypeChecking.Reduce
       Agda.TypeChecking.Reduce.Fast
       Agda.TypeChecking.Reduce.Monad
-      Agda.TypeChecking.Rules.Display
       Agda.TypeChecking.Sort
       Agda.TypeChecking.Substitute
       Agda.TypeChecking.Substitute.Class
