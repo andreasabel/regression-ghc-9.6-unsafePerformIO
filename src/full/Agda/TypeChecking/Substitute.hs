@@ -39,7 +39,6 @@ import Agda.Interaction.Options
 import Agda.Syntax.Common
 import Agda.Syntax.Position
 import Agda.Syntax.Internal
-import Agda.Syntax.Internal.Pattern
 import qualified Agda.Syntax.Abstract as A
 
 import Agda.TypeChecking.Monad.Base
@@ -1144,7 +1143,7 @@ instance DeBruijn a => DeBruijn (Pattern' a) where
   deBruijnView _                   = Nothing
 
 fromPatternSubstitution :: PatternSubstitution -> Substitution
-fromPatternSubstitution = fmap patternToTerm
+fromPatternSubstitution = undefined
 
 applyPatSubst :: TermSubst a => PatternSubstitution -> a -> a
 applyPatSubst = applySubst . fromPatternSubstitution
@@ -1381,7 +1380,7 @@ typeArgsWithTel EmptyTel{} (_:_)             = Nothing
 --   pattern variables (including dot patterns) instead of the clause telescope.
 compiledClauseBody :: Clause -> Maybe Term
 compiledClauseBody cl = applySubst (renamingR perm) $ clauseBody cl
-  where perm = fromMaybe __IMPOSSIBLE__ $ clausePerm cl
+  where perm = undefined
 
 ---------------------------------------------------------------------------
 -- * Syntactic equality and order

@@ -16,7 +16,6 @@ import Data.Monoid
 
 import Agda.Syntax.Common
 import Agda.Syntax.Internal
-import Agda.Syntax.Internal.Pattern
 
 import Agda.TypeChecking.Monad.Builtin
 import Agda.TypeChecking.Monad
@@ -289,50 +288,7 @@ instantiateTelescope
   -> Maybe (Telescope,           -- ⊢ Γ'
             PatternSubstitution, -- Γ' ⊢ σ : Γ
             Permutation)         -- Γ  ⊢ flipP ρ : Γ'
-instantiateTelescope tel k p = guard ok $> (tel', sigma, rho)
-  where
-    names = teleNames tel
-    ts0   = flattenTel tel
-    n     = size tel
-    j     = n-1-k
-    u     = patternToTerm p
-
-    -- Jesper, 2019-12-31: Previous implementation that does some
-    -- unneccessary reordering but is otherwise correct (keep!)
-    -- -- is0 is the part of Γ that is needed to type u
-    -- is0   = varDependencies tel $ allFreeVars u
-    -- -- is1 is the rest of Γ (minus the variable we are instantiating)
-    -- is1   = IntSet.delete j $
-    --           IntSet.fromAscList [ 0 .. n-1 ] `IntSet.difference` is0
-    -- -- we work on de Bruijn indices, so later parts come first
-    -- is    = IntSet.toAscList is1 ++ IntSet.toAscList is0
-
-    -- -- if u depends on var j, we cannot instantiate
-    -- ok    = not $ j `IntSet.member` is0
-
-    -- is0 is the part of Γ that is needed to type u
-    is0   = varDependencies tel $ allFreeVars u
-    -- is1 is the part of Γ that depends on variable j
-    is1   = varDependents tel $ singleton j
-    -- lasti is the last (rightmost) variable of is0
-    lasti = if null is0 then n else IntSet.findMin is0
-    -- we move each variable in is1 to the right until it comes after
-    -- all variables in is0 (i.e. after lasti)
-    (as,bs) = List.partition (`IntSet.member` is1) [ n-1 , n-2 .. lasti ]
-    is    = reverse $ List.delete j $ bs ++ as ++ downFrom lasti
-
-    -- if u depends on var j, we cannot instantiate
-    ok    = not $ j `IntSet.member` is0
-
-    perm  = Perm n $ is    -- works on de Bruijn indices
-    rho   = reverseP perm  -- works on de Bruijn levels
-
-    p1    = renameP impossible perm p -- Γ' ⊢ p1 : A'
-    us    = map (\i -> maybe p1 deBruijnVar (List.elemIndex i is)) [ 0 .. n-1 ]
-    sigma = us ++# raiseS (n-1)
-
-    ts1   = permute rho $ applyPatSubst sigma ts0
-    tel'  = unflattenTel (permute rho names) ts1
+instantiateTelescope tel k p = Nothing
 
 -- | Try to eta-expand one variable in the telescope (given by its de Bruijn
 --   level)
