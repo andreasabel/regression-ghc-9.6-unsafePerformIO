@@ -1,4 +1,4 @@
--- {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall #-}
 
 {-| Agda main module.
 -}
@@ -9,13 +9,10 @@ import qualified Control.Exception as E
 import Control.Monad.Except   ( MonadError(..) )
 import Control.Monad.IO.Class ( MonadIO(..) )
 
-import System.Environment
 import System.Exit
 
 import Agda.Interaction.ExitCode (AgdaError(..), exitAgdaWith)
-import Agda.Interaction.Options
 import Agda.Interaction.Options.Base (defaultPragmaOptions, lensOptVerbose, parseVerboseKey)
-import Agda.Interaction.FindFile ( SourceFile(SourceFile) )
 
 import qualified Agda.Syntax.Concrete as C
 import Agda.Syntax.Common (underscore)
@@ -25,11 +22,9 @@ import Agda.Syntax.TopLevelModuleName
 import Agda.Syntax.Translation.ConcreteToAbstract (concreteToAbstract_, TopLevel(..))
 
 import Agda.TypeChecking.Errors
-import Agda.TypeChecking.Monad
-import Agda.TypeChecking.Monad (TCM, envCurrentPath, localTC)
+import Agda.TypeChecking.Monad (TCM, envCurrentPath, localTC, runTCMTop)
 import Agda.TypeChecking.Monad.Options ( setPragmaOptions )
 
-import Agda.Utils.FileName (absolute, AbsolutePath)
 import Agda.Utils.FileName (pattern AbsolutePath)
 import Agda.Utils.Monad
 import Agda.Utils.Null (empty)
@@ -42,27 +37,8 @@ import Agda.Utils.Impossible
 
 -- | The main function
 runAgda :: [a] -> IO ()
-runAgda _backends =
-  runTCMPrettyErrors $ do
-    argv <- liftIO getArgs
-    let (Right opts, _warns) = runOptM $ getOptSimple (stripRTS argv) standardOptions inputFlag defaultOptions
-    Just inputFile <- liftIO $ mapM absolute $ optInputFile opts
-    runAgdaWithOptions inputFile opts
-
--- | Run Agda with parsed command line options
-runAgdaWithOptions
-  :: AbsolutePath
-  -> CommandLineOptions -- ^ parsed command line options
-  -> TCM ()
-runAgdaWithOptions inputFile opts = do
-  setCommandLineOptions opts
-  typeCheckMain
-
-
-typeCheckMain :: TCM ()
-typeCheckMain = do
+runAgda _backends = runTCMPrettyErrors $ do
   let srcPath = AbsolutePath "ImpossibleVerboseReduceM.agda"
-  -- liftIO $ print srcPath
 
   localTC (\e -> e { envCurrentPath = Just srcPath }) $ do
 
