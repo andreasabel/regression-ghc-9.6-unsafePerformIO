@@ -11,9 +11,7 @@ import qualified Control.Exception as E
 import Control.Monad.Except   ( MonadError(..) )
 import Control.Monad.IO.Class ( MonadIO(..) )
 
-import System.Exit
-
-import Agda.Interaction.ExitCode (AgdaError(..), exitAgdaWith)
+import Agda.Interaction.ExitCode (AgdaError(..))
 import Agda.Interaction.Options.Base (defaultPragmaOptions, lensOptVerbose, parseVerboseKey)
 
 import Agda.TypeChecking.Errors
@@ -41,7 +39,7 @@ main = runTCMPrettyErrors $ do
 -- | Run a TCM action in IO; catch and pretty print errors.
 runTCMPrettyErrors :: TCM () -> IO ()
 runTCMPrettyErrors tcm = do
-  r <- runTCMTop
+  _ <- runTCMTop
     ( ( (Nothing <$ tcm)
           `catchError` \err -> do
             s2s <- prettyTCWarnings' =<< getAllWarningsOfTCErr err
@@ -52,22 +50,5 @@ runTCMPrettyErrors tcm = do
       ) `catchImpossible` \e -> do
           liftIO $ putStr $ E.displayException e
           return (Just ImpossibleError)
-    ) `E.catches`
-        -- Catch all exceptions except for those of type ExitCode
-        -- (which are thrown by exitWith) and asynchronous exceptions
-        -- (which are for instance raised when Ctrl-C is used, or if
-        -- the program runs out of heap or stack space).
-        [ E.Handler $ \(e :: ExitCode)         -> E.throw e
-        , E.Handler $ \(e :: E.AsyncException) -> E.throw e
-        , E.Handler $ \(e :: E.SomeException)  -> do
-            liftIO $ putStr $ E.displayException e
-            return $ Right (Just UnknownError)
-        ]
-  case r of
-    Right Nothing       -> exitSuccess
-    Right (Just reason) -> exitAgdaWith reason
-    Left err            -> do
-      liftIO $ do
-        putStrLn "\n\nError when handling error:"
-        putStrLn $ tcErrString err
-      exitAgdaWith UnknownError
+    )
+  return ()
