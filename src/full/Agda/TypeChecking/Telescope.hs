@@ -19,7 +19,6 @@ import Agda.Syntax.Internal
 
 import Agda.TypeChecking.Monad.Builtin
 import Agda.TypeChecking.Monad
-import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Free
 import Agda.TypeChecking.Warnings
@@ -338,7 +337,6 @@ telViewUpTo n t = telViewUpTo' n (const True) t
 telViewUpTo' :: (MonadReduce m, MonadAddContext m) => Int -> (Dom Type -> Bool) -> Type -> m TelView
 telViewUpTo' 0 p t = return $ TelV EmptyTel t
 telViewUpTo' n p t = do
-  t <- reduce t
   case unEl t of
     Pi a b | p a ->
           -- Force the name to avoid retaining the rest of b.
@@ -451,8 +449,7 @@ pathViewAsPi t = either (Left . fst) Right <$> pathViewAsPi' t
 -- | Reduces 'Type'.
 pathViewAsPi'
   :: PureTCM m => Type -> m (Either ((Dom Type, Abs Type), (Term,Term)) Type)
-pathViewAsPi' t = do
-  pathViewAsPi'whnf <*> reduce t
+pathViewAsPi' t = undefined
 
 pathViewAsPi'whnf
   :: (HasBuiltins m)
@@ -616,24 +613,7 @@ data OutputTypeName
 -- | Strips all hidden and instance Pi's and return the argument
 --   telescope and head definition name, if possible.
 getOutputTypeName :: Type -> TCM (Telescope, OutputTypeName)
-getOutputTypeName t = do
-  TelV tel t' <- telViewUpTo' (-1) notVisible t
-  ifBlocked (unEl t') (\ b _ -> return (tel , OutputTypeNameNotYetKnown b)) $ \ _ v ->
-    case v of
-      -- Possible base types:
-      Def n _  -> return (tel , OutputTypeName n)
-      Sort{}   -> return (tel , NoOutputTypeName)
-      Var n _  -> return (tel , OutputTypeVar)
-      Pi{}     -> return (tel , OutputTypeVisiblePi)
-      -- Not base types:
-      Con{}    -> __IMPOSSIBLE__
-      Lam{}    -> __IMPOSSIBLE__
-      Lit{}    -> __IMPOSSIBLE__
-      Level{}  -> __IMPOSSIBLE__
-      MetaV{}  -> __IMPOSSIBLE__
-      DontCare{} -> __IMPOSSIBLE__
-      Dummy s _ -> __IMPOSSIBLE_VERBOSE__ s
-
+getOutputTypeName t = undefined
 
 -- | Register the definition with the given type as an instance.
 --   Issue warnings if instance is unusable.

@@ -42,7 +42,6 @@ import Agda.TypeChecking.Errors (getAllWarnings)
 -- defined in Agda.Utils.Benchmark, which causes an error. So we explicitly
 -- hide it here to prevent it from being seen there and causing an error.
 import Agda.TypeChecking.Monad hiding (getBenchmark)
-import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Pretty as P
 
 import Agda.Interaction.Options
@@ -266,7 +265,7 @@ compileModule backend env isMain i = do
     Skip m         -> return m
     Recompile menv -> do
       defs <- map snd . sortDefs <$> curDefs
-      res  <- mapM (compileDef' backend env menv isMain <=< instantiateFull) defs
+      res  <- mapM (compileDef' backend env menv isMain) defs
       postModule backend env menv isMain (iTopLevelModuleName i) res
 
 compileDef' :: Backend' opts env menv mod def -> env -> menv -> IsMain -> Definition -> TCM def

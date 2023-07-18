@@ -51,7 +51,6 @@ import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.CompiledClause
 import Agda.TypeChecking.Coverage.SplitTree
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
-import {-# SOURCE #-} Agda.TypeChecking.Reduce
 
 import Agda.Utils.CallStack.Base
 import Agda.Utils.Either
@@ -374,8 +373,6 @@ addDisplayForms x = do
     -- Unfold a single defCopy.
     unfoldOnce :: Term -> TCM (Reduced () Term)
     unfoldOnce v = case view v of
-      (xs, Def f es)   -> (fmap . fmap) (unlamView xs) (reduceDefCopyTCM f es)
-      (xs, Con c i es) -> (fmap . fmap) (unlamView xs) (reduceDefCopyTCM (conName c) es)
       _                -> pure $ NoReduction ()
 
     -- Compute all reduceDefCopy unfoldings of `x`. Stop when we hit a non-copy.

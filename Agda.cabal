@@ -286,7 +286,6 @@ library
       Agda.TypeChecking.Free
       Agda.TypeChecking.Free.Lazy
       Agda.TypeChecking.Free.Precompute
-      Agda.TypeChecking.Free.Reduce
       Agda.TypeChecking.Monad.Base
       Agda.TypeChecking.Monad.Benchmark
       Agda.TypeChecking.Monad.Builtin
@@ -310,7 +309,6 @@ library
       Agda.TypeChecking.Pretty
       Agda.TypeChecking.Pretty.Call
       Agda.TypeChecking.Pretty.Warning
-      Agda.TypeChecking.Reduce
       Agda.TypeChecking.Reduce.Monad
       Agda.TypeChecking.Substitute
       Agda.TypeChecking.Substitute.Class

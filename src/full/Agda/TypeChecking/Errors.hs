@@ -59,7 +59,6 @@ import Agda.TypeChecking.Pretty.Call
 import Agda.TypeChecking.Pretty.Warning
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope ( ifPiType )
-import Agda.TypeChecking.Reduce (instantiate)
 
 import Agda.Utils.FileName
 import Agda.Utils.Float  ( toStringWithoutDotZero )
@@ -1343,7 +1342,7 @@ prettyInEqual t1 t2 = do
   (d1, d2,) <$> do
      -- if printed differently, no extra explanation needed
     if P.render d1 /= P.render d2 then empty else do
-      (v1, v2) <- instantiate (t1, t2)
+      (v1, v2) <- return (t1, t2)
       case (v1, v2) of
         (I.Var i1 _, I.Var i2 _)
           | i1 == i2  -> generic -- possible, see issue 1826
