@@ -55,7 +55,6 @@ import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.CompiledClause (CompiledClauses'(Fail))
 import Agda.TypeChecking.DisplayForm
-import {-# SOURCE #-} Agda.TypeChecking.Datatypes
 import Agda.TypeChecking.Free
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
