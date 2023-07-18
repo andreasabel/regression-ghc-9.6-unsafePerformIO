@@ -70,7 +70,6 @@ import Agda.TypeChecking.Monad.Builtin
 import Agda.TypeChecking.Monad.MetaVars
 import Agda.TypeChecking.Monad.Pure
 import Agda.TypeChecking.Monad.Signature
-import {-# SOURCE #-} Agda.TypeChecking.Pretty (prettyTCM)
 import Agda.Interaction.Options
 
 import qualified Agda.Utils.AssocList as AssocList
@@ -782,10 +781,7 @@ instance ToConcrete A.Expr where
       return $ C.QuestionMark (getRange i) $
                  interactionId ii <$ guard (preserve || isJust (metaNumber i))
 
-    toConcrete (A.Underscore i) =
-      C.Underscore (getRange i) <$>
-      traverse (render <.> prettyTCM)
-        (NamedMeta (metaNameSuggestion i) <$> metaNumber i)
+    toConcrete (A.Underscore i) = undefined
 
     toConcrete (A.Dot i e) =
       C.Dot (getRange i) <$> toConcrete e
@@ -1863,5 +1859,4 @@ instance ToConcrete InteractionId where
 
 instance ToConcrete NamedMeta where
     type ConOfAbs NamedMeta = C.Expr
-    toConcrete i =
-      C.Underscore noRange . Just . render <$> prettyTCM i
+    toConcrete i = undefined

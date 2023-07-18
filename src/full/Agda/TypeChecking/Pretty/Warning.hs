@@ -28,8 +28,6 @@ import Agda.TypeChecking.Monad.Constraints
 import Agda.TypeChecking.Monad.State ( getScope )
 import Agda.TypeChecking.Monad ( localTCState, enterClosure )
 import Agda.TypeChecking.Pretty
-import Agda.TypeChecking.Pretty.Call
-import {-# SOURCE #-} Agda.TypeChecking.Pretty.Constraint (prettyInterestingConstraints, interestingConstraint)
 import Agda.TypeChecking.Warnings (MonadWarning, isUnsolvedWarning, onlyShowIfUnsolved, classifyWarning, WhichWarnings(..), warning_)
 import Agda.TypeChecking.Monad.Constraints (getAllConstraints)
 
@@ -78,14 +76,7 @@ prettyWarning = \case
       fsep ( pwords "Interaction meta(s) at the following location(s) have unsolved boundary constraints:" )
       $$ nest 2 (vcat $ map prettyTCM (Set.toList (Set.fromList is)))
 
-    UnsolvedConstraints cs -> do
-      pcs <- prettyInterestingConstraints cs
-      if null pcs
-        then fsep $ pwords "Unsolved constraints"  -- #4065: keep minimal warning text
-        else vcat
-          [ fsep $ pwords "Failed to solve the following constraints:"
-          , nest 2 $ return $ P.vcat $ List.nub pcs
-          ]
+    UnsolvedConstraints cs -> undefined
 
     TerminationIssue because -> do
       dropTopLevel <- topLevelModuleDropper
@@ -94,9 +85,6 @@ prettyWarning = \case
              map (pretty . dropTopLevel) $
                concatMap termErrFunctions because)
         $$ fwords "Problematic calls:"
-        $$ nest 2 (fmap (P.vcat . List.nub) $
-              mapM prettyTCM $ List.sortOn getRange $
-              concatMap termErrCalls because)
 
     UnreachableClauses f pss -> fsep $
       pwords "Unreachable" ++ pwords (plural (length pss) "clause")
@@ -449,7 +437,6 @@ filterTCWarnings = \case
   -- If there are several warnings, remove the unsolved-constraints warning
   -- in case there are no interesting constraints to list.
   ws  -> (`filter` ws) $ \ w -> case tcWarning w of
-    UnsolvedConstraints cs -> any interestingConstraint cs
     _ -> True
 
 

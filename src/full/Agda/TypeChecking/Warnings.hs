@@ -32,8 +32,6 @@ import Agda.TypeChecking.Monad.Base
 import Agda.TypeChecking.Monad.Debug
 import Agda.TypeChecking.Monad.Caching
 import {-# SOURCE #-} Agda.TypeChecking.Pretty (MonadPretty, prettyTCM, ($$))
-import {-# SOURCE #-} Agda.TypeChecking.Pretty.Call
-import {-# SOURCE #-} Agda.TypeChecking.Pretty.Warning ( prettyWarning, prettyWarningName )
 import {-# SOURCE #-} Agda.TypeChecking.Monad.Pure
 
 import Agda.Syntax.Abstract.Name ( QName )
@@ -90,19 +88,7 @@ genericNonFatalError = warning . GenericNonFatalError
 
 {-# SPECIALIZE warning'_ :: CallStack -> Warning -> TCM TCWarning #-}
 warning'_ :: (MonadWarning m) => CallStack -> Warning -> m TCWarning
-warning'_ loc w = do
-  r <- viewTC eRange
-  c <- viewTC eCall
-  b <- areWeCaching
-  -- NicifierIssues come with their own error locations.
-  let r' = case w of { NicifierIssue w0 -> getRange w0 ; _ -> r }
-  let wn = warningName w
-  p <- sayWhen r' c $
-    -- Only benign warnings can be deactivated with -WnoXXX, so don't
-    -- display hint for error warnings.
-    applyUnless (wn `elem` errorWarnings) (prettyWarningName wn $$) $
-      prettyWarning w
-  return $ TCWarning loc r w p b
+warning'_ loc w = undefined
 
 {-# SPECIALIZE warning_ :: Warning -> TCM TCWarning #-}
 warning_ :: (HasCallStack, MonadWarning m) => Warning -> m TCWarning

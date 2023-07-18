@@ -53,8 +53,6 @@ import Agda.TypeChecking.CompiledClause
 
 import Agda.TypeChecking.Reduce.Monad
 
-import {-# SOURCE #-} Agda.TypeChecking.Pretty
-
 import Agda.Utils.Functor
 import Agda.Utils.Lens
 import Agda.Utils.List
@@ -671,7 +669,6 @@ reduceHead v = do -- ignoreAbstractMode $ do
 
   -- first, possibly rewrite literal v to constructor form
   v <- constructorForm v
-  traceSDoc "tc.inj.reduce" 30 (ignoreAbstractMode $ "reduceHead" <+> prettyTCM v) $ do
   case v of
     Def f es -> do
 
@@ -686,7 +683,6 @@ reduceHead v = do -- ignoreAbstractMode $ do
         -- type checker loop here on non-terminating functions.
         -- see test/fail/TerminationInfiniteRecord
         Function{ funClauses = [ _ ], funTerminates = Just True } -> do
-          traceSLn "tc.inj.reduce" 50 ("reduceHead: head " ++ prettyShow f ++ " is Function") $ do
           red
         Datatype{ dataClause = Just _ } -> red
         Record{ recClause = Just _ }    -> red
@@ -703,20 +699,9 @@ unfoldInlined v = do
       info <- getConstInfo f
       let def = theDef info
           irr = isIrrelevant $ defArgInfo info
-      case def of
-        Function{} ->
-          reportSLn "tc.inline" 90 $
-            intercalate "\n"
-            [ "considering to inline " ++ prettyShow f
-            , "irr         = " ++ prettyShow irr
-            , "funInline   = " ++ prettyShow (def ^. funInline)
-            , "funCompiled = " ++ prettyShow (funCompiled def)
-            ]
-        _ -> pure ()
       case def of   -- Only for simple definitions with no pattern matching (TODO: maybe copatterns?)
         Function{ funCompiled = Just Done{} }
           | def ^. funInline , not irr -> do
-              reportSLn "tc.inline" 70 $ "asking to inline " ++ prettyShow f
               liftReduce $
                 ignoreBlocking <$> unfoldDefinitionE (return . notBlocked) (Def f []) f es
         _ -> return v
@@ -753,7 +738,7 @@ appDefE' f v cls rewr es =
 
 -- | Expects @'envAppDef' = Just f@ in 'TCEnv' to be able to report @'MissingClauses' f@.
 appDefE'' :: Term -> [Clause] -> RewriteRules -> MaybeReducedElims -> ReduceM (Reduced (Blocked Term) Term)
-appDefE'' v cls rewr es = traceSDoc "tc.reduce" 90 ("appDefE' v = " <+> pretty v) $ do
+appDefE'' v cls rewr es = do
   goCls cls $ map ignoreReduced es
   where
     goCls :: [Clause] -> [Elim] -> ReduceM (Reduced (Blocked Term) Term)
@@ -883,9 +868,6 @@ instance Simplify Term where
       Def f vs   -> iapp vs $ do
         let keepGoing simp v = return (simp, notBlocked v)
         (simpl, v) <- unfoldDefinition' keepGoing (Def f []) f vs
-        when (simpl == YesSimplification) $
-          reportSDoc "tc.simplify'" 90 $
-            pretty f <+> text ("simplify': unfolding definition returns " ++ show simpl) <+> pretty (ignoreBlocking v)
         case simpl of
           YesSimplification -> simplifyBlocked' v -- Dangerous, but if @simpl@ then @v /= Def f vs@
           NoSimplification  -> Def f <$> simplify' vs
