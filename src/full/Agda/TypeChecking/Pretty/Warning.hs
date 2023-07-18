@@ -38,7 +38,6 @@ import Agda.Syntax.Position
 import qualified Agda.Syntax.Concrete as C
 import Agda.Syntax.Scope.Base ( concreteNamesInScope, NameOrModule(..) )
 import Agda.Syntax.Internal
-import Agda.Syntax.Translation.InternalToAbstract
 
 import Agda.Interaction.Options
 import Agda.Interaction.Options.Warnings
@@ -107,16 +106,12 @@ prettyWarning = \case
 
     CoverageIssue f pss -> fsep (
       pwords "Incomplete pattern matching for" ++ [prettyTCM f <> "."] ++
-      pwords "Missing cases:") $$ nest 2 (vcat $ map display pss)
-        where
-        display (tel, ps) = prettyTCM $ NamedClause f True $
-          empty { clauseTel = tel, namedClausePats = ps }
+      pwords "Missing cases:")
 
     CoverageNoExactSplit f cs -> vcat $
       fsep (pwords "Exact splitting is enabled, but the following" ++ pwords (P.singPlural cs "clause" "clauses") ++
             pwords "could not be preserved as definitional equalities in the translation to a case tree:"
-           ) :
-      map (nest 2 . prettyTCM . NamedClause f True) cs
+           ) : []
 
     NotStrictlyPositive d ocs -> fsep $
       [prettyTCM d] ++ pwords "is not strictly positive, because it occurs"

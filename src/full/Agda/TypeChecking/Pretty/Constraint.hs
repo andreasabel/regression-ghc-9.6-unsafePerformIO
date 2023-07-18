@@ -16,7 +16,6 @@ import Agda.Syntax.Position
 import qualified Agda.Syntax.Abstract as A
 import qualified Agda.Syntax.Info     as A
 import Agda.Syntax.Fixity
-import Agda.Syntax.Translation.InternalToAbstract
 import Agda.Syntax.Internal
 
 import Agda.TypeChecking.Monad
@@ -145,9 +144,7 @@ instance PrettyTCM Constraint where
         HasPTSRule a b -> "Has PTS rule:" <+> case b of
           NoAbs _ b -> prettyTCM (a,b)
           Abs x b   -> "(" <> (prettyTCM a <+> "," <+> addContext x (prettyTCM b)) <> ")"
-        UnquoteTactic v _ _ -> do
-          e <- reify v
-          prettyTCM (A.App A.defaultAppInfo_ (A.Unquote A.exprNoRange) (defaultNamedArg e))
+        UnquoteTactic v _ _ -> undefined
         CheckDataSort q s -> do
           hsep [ "Sort", prettyTCM s, "of", prettyTCM q, "admits data/record definitions." ]
         CheckMetaInst x -> do

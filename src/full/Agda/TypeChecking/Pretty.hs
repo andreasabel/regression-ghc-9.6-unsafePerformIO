@@ -26,7 +26,6 @@ import Agda.Syntax.Common
 import Agda.Syntax.Fixity
 import Agda.Syntax.Internal
 import Agda.Syntax.Literal
-import Agda.Syntax.Translation.InternalToAbstract
 import Agda.Syntax.Translation.AbstractToConcrete
 import qualified Agda.Syntax.Translation.AbstractToConcrete as Reexport (MonadAbsToCon)
 import qualified Agda.Syntax.Abstract as A
@@ -191,22 +190,21 @@ instance (PrettyTCM a, PrettyTCM b, PrettyTCM c) => PrettyTCM (a,b,c) where
   prettyTCM (a, b, c) = parens $
     prettyTCM a <> comma <> prettyTCM b <> comma <> prettyTCM c
 
-instance PrettyTCM Term               where prettyTCM = prettyA <=< reify
-instance PrettyTCM Type               where prettyTCM = prettyA <=< reify
-instance PrettyTCM Sort               where prettyTCM = prettyA <=< reify
-instance PrettyTCM DisplayTerm        where prettyTCM = prettyA <=< reify
-instance PrettyTCM NamedClause        where prettyTCM = prettyA <=< reify
-instance PrettyTCM (QNamed Clause)    where prettyTCM = prettyA <=< reify
-instance PrettyTCM Level              where prettyTCM = prettyA <=< reify . Level
-instance PrettyTCM (Named_ Term)      where prettyTCM = prettyA <=< reify
-instance PrettyTCM (Arg Term)         where prettyTCM = prettyA <=< reify
-instance PrettyTCM (Arg Type)         where prettyTCM = prettyA <=< reify
-instance PrettyTCM (Arg Bool)         where prettyTCM = prettyA <=< reify
-instance PrettyTCM (Arg A.Expr)       where prettyTCM = prettyA <=< reify
-instance PrettyTCM (NamedArg A.Expr)  where prettyTCM = prettyA <=< reify
-instance PrettyTCM (NamedArg Term)    where prettyTCM = prettyA <=< reify
-instance PrettyTCM (Dom Type)         where prettyTCM = prettyA <=< reify
-instance PrettyTCM ContextEntry       where prettyTCM = prettyA <=< reify
+instance PrettyTCM Term               where prettyTCM = undefined
+instance PrettyTCM Type               where prettyTCM = undefined
+instance PrettyTCM Sort               where prettyTCM = undefined
+instance PrettyTCM DisplayTerm        where prettyTCM = undefined
+instance PrettyTCM (QNamed Clause)    where prettyTCM = undefined
+instance PrettyTCM Level              where prettyTCM = undefined
+instance PrettyTCM (Named_ Term)      where prettyTCM = undefined
+instance PrettyTCM (Arg Term)         where prettyTCM = undefined
+instance PrettyTCM (Arg Type)         where prettyTCM = undefined
+instance PrettyTCM (Arg Bool)         where prettyTCM = undefined
+instance PrettyTCM (Arg A.Expr)       where prettyTCM = undefined
+instance PrettyTCM (NamedArg A.Expr)  where prettyTCM = undefined
+instance PrettyTCM (NamedArg Term)    where prettyTCM = undefined
+instance PrettyTCM (Dom Type)         where prettyTCM = undefined
+instance PrettyTCM ContextEntry       where prettyTCM = undefined
 
 instance PrettyTCM Permutation where prettyTCM = text . show
 instance PrettyTCM Polarity    where prettyTCM = text . show
@@ -264,7 +262,6 @@ instance (PrettyTCM k, PrettyTCM v) => PrettyTCM (Map k v) where
 -- instance {-# OVERLAPPING #-} PrettyTCM ArgName where
 --   prettyTCM = text . P.prettyShow
 
--- instance (Reify a e, ToConcrete e c, P.Pretty c, PrettyTCM a) => PrettyTCM (Elim' a) where
 instance PrettyTCM Elim where
   prettyTCM (IApply x y v) = "I$" <+> prettyTCM v
   prettyTCM (Apply v) = "$" <+> prettyTCM v
@@ -333,9 +330,7 @@ instance PrettyTCM TypeCheckingProblem where
           ":?"
         , prettyTCM t
         ]
-  prettyTCM (DoQuoteTerm _ v _) = do
-    e <- reify v
-    prettyTCM (A.App A.defaultAppInfo_ (A.QuoteTerm A.exprNoRange) (defaultNamedArg e))
+  prettyTCM (DoQuoteTerm _ v _) = undefined
 
 instance PrettyTCM a => PrettyTCM (WithHiding a) where
   prettyTCM (WithHiding h a) = CP.prettyHiding h id <$> prettyTCM a
@@ -356,9 +351,7 @@ instance PrettyTCM ConHead where
   prettyTCM = prettyTCM . conName
 
 instance PrettyTCM Telescope where
-  prettyTCM tel = P.fsep . map P.pretty <$> do
-      tel <- reify tel
-      runAbsToCon $ bindToConcrete tel return
+  prettyTCM tel = undefined
 
 newtype PrettyContext = PrettyContext Context
 
@@ -397,10 +390,10 @@ instance PrettyTCM a => PrettyTCM (Pattern' a) where
 
 -- | Proper pretty printing of patterns:
 prettyTCMPatterns :: MonadPretty m => [NamedArg DeBruijnPattern] -> m [Doc]
-prettyTCMPatterns = mapM prettyA <=< reifyPatterns
+prettyTCMPatterns = undefined
 
 prettyTCMPatternList :: MonadPretty m => [NamedArg DeBruijnPattern] -> m Doc
-prettyTCMPatternList = prettyList . map prettyA <=< reifyPatterns
+prettyTCMPatternList = undefined
 
 instance PrettyTCM (Elim' DisplayTerm) where
   prettyTCM (IApply x y v) = "$" <+> prettyTCM v
