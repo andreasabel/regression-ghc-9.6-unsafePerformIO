@@ -232,8 +232,6 @@ prettyWarning = \case
 
     OptionWarning ow -> pretty ow
 
-    ParseWarning pw -> pretty pw
-
     DeprecationWarning old new version -> fsep $
       [text old] ++ pwords "has been deprecated. Use" ++ [text new] ++ pwords
       "instead. This will be an error in Agda" ++ [text version <> "."]

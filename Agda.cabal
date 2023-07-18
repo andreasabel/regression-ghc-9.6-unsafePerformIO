@@ -174,14 +174,6 @@ common language
     , vector-hashtables    == 0.1.*
     , zlib                 == 0.6.*
 
-  -- We don't write upper bounds for Alex nor Happy because the
-  -- `build-tool-depends` field can not be modified in Hackage.
-  build-tool-depends:
-    , alex:alex   >= 3.2.3
-        -- alex-3.2.3 is packaged with Ubuntu 18.04
-    , happy:happy >= 1.19.8
-        -- happy-1.19.8 is packaged with Ubuntu 18.04
-
 
 -- Agda library
 ---------------------------------------------------------------------------
@@ -242,18 +234,6 @@ library
       Agda.Syntax.Internal.Univ
       Agda.Syntax.Literal
       Agda.Syntax.Notation
-      Agda.Syntax.Parser
-      Agda.Syntax.Parser.Alex
-      Agda.Syntax.Parser.Comments
-      Agda.Syntax.Parser.Layout
-      Agda.Syntax.Parser.LexActions
-      Agda.Syntax.Parser.Lexer
-      Agda.Syntax.Parser.Literate
-      Agda.Syntax.Parser.LookAhead
-      Agda.Syntax.Parser.Monad
-      Agda.Syntax.Parser.Parser
-      Agda.Syntax.Parser.StringLiterals
-      Agda.Syntax.Parser.Tokens
       Agda.Syntax.Position
       Agda.Syntax.Reflected
       Agda.Syntax.Scope.Base

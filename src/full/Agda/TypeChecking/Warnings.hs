@@ -13,7 +13,6 @@ module Agda.TypeChecking.Warnings
   -- not exporting constructor of WarningsAndNonFatalErrors
   , WarningsAndNonFatalErrors, tcWarnings, nonFatalErrors
   , emptyWarningsAndNonFatalErrors, classifyWarnings
-  , runPM
   ) where
 
 import Control.Monad ( forM, unless )
@@ -36,7 +35,6 @@ import {-# SOURCE #-} Agda.TypeChecking.Monad.Pure
 import Agda.Syntax.Abstract.Name ( QName )
 import Agda.Syntax.Common
 import Agda.Syntax.Position
-import Agda.Syntax.Parser
 
 import Agda.Interaction.Options
 import Agda.Interaction.Options.Warnings
@@ -196,17 +194,3 @@ classifyWarnings ws = WarningsAndNonFatalErrors warnings errors
   where
     partite = (< AllWarnings) . classifyWarning . tcWarning
     (errors, warnings) = List.partition partite ws
-
-
--- * Warnings in the parser
----------------------------------------------------------------------------
-
--- | running the Parse monad
-
-runPM :: PM a -> TCM a
-runPM m = do
-  (res, ws) <- runPMIO m
-  mapM_ (warning . ParseWarning) ws
-  case res of
-    Left  e -> throwError (Exception (getRange e) (P.pretty e))
-    Right a -> return a

@@ -29,8 +29,6 @@ import qualified Data.Text as T
 import System.FilePath
 
 import Agda.Syntax.Concrete
-import Agda.Syntax.Parser
-import Agda.Syntax.Parser.Literate (literateExtsShortList)
 import Agda.Syntax.Position
 import Agda.Syntax.TopLevelModuleName
 
@@ -42,7 +40,6 @@ import qualified Agda.TypeChecking.Monad.Benchmark as Bench
 import {-# SOURCE #-} Agda.TypeChecking.Monad.Options
   (getIncludeDirs, libToTCM)
 import Agda.TypeChecking.Monad.State (topLevelModuleName)
-import Agda.TypeChecking.Warnings (runPM)
 
 import Agda.Version ( version )
 
@@ -148,24 +145,7 @@ findFile''
   -> ModuleToSource
   -- ^ Cached invocations of 'findFile'''. An updated copy is returned.
   -> IO (Either FindError SourceFile, ModuleToSource)
-findFile'' dirs m modFile =
-  case Map.lookup m modFile of
-    Just f  -> return (Right (SourceFile f), modFile)
-    Nothing -> do
-      files          <- fileList acceptableFileExts
-      filesShortList <- fileList parseFileExtsShortList
-      existingFiles  <-
-        liftIO $ filterM (doesFileExistCaseSensitive . filePath . srcFilePath) files
-      return $ case nubOn id existingFiles of
-        []     -> (Left (NotFound filesShortList), modFile)
-        [file] -> (Right file, Map.insert m (srcFilePath file) modFile)
-        files  -> (Left (Ambiguous existingFiles), modFile)
-  where
-    fileList exts = mapM (fmap SourceFile . absolute)
-                    [ filePath dir </> file
-                    | dir  <- dirs
-                    , file <- map (moduleNameToFileName m) exts
-                    ]
+findFile'' dirs m modFile = undefined
 
 -- | Finds the interface file corresponding to a given top-level
 -- module file. The returned paths are absolute.
@@ -243,36 +223,13 @@ moduleName
   -> Module
      -- ^ The parsed module.
   -> TCM TopLevelModuleName
-moduleName file parsedModule = billTo [Bench.ModuleName] $ do
-  let defaultName = rootNameModule file
-      raw         = rawTopLevelModuleNameForModule parsedModule
-  topLevelModuleName =<< if isNoName raw
-    then do
-      m <- runPM (fst <$> parse moduleNameParser defaultName)
-             `catchError` \_ ->
-           typeError $ GenericError $
-             "The file name " ++ prettyShow file ++
-             " is invalid because it does not correspond to a valid module name."
-      case m of
-        Qual {} ->
-          typeError $ GenericError $
-            "The file name " ++ prettyShow file ++ " is invalid because " ++
-            defaultName ++ " is not an unqualified module name."
-        QName {} ->
-          return $ RawTopLevelModuleName
-            { rawModuleNameRange = getRange m
-            , rawModuleNameParts = singleton (T.pack defaultName)
-            }
-    else return raw
+moduleName file parsedModule = undefined
 
 parseFileExtsShortList :: [String]
-parseFileExtsShortList = ".agda" : literateExtsShortList
+parseFileExtsShortList = []
 
 dropAgdaExtension :: String -> String
-dropAgdaExtension s = case catMaybes [ stripSuffix ext s
-                                     | ext <- acceptableFileExts ] of
-    [name] -> name
-    _      -> __IMPOSSIBLE__
+dropAgdaExtension s = s
 
 rootNameModule :: AbsolutePath -> String
 rootNameModule = dropAgdaExtension . snd . splitFileName . filePath
