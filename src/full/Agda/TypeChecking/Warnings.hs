@@ -30,7 +30,6 @@ import Data.Semigroup ( Semigroup, (<>) )
 
 import Agda.TypeChecking.Monad.Base
 import Agda.TypeChecking.Monad.Debug
-import Agda.TypeChecking.Monad.Caching
 import {-# SOURCE #-} Agda.TypeChecking.Pretty (MonadPretty, prettyTCM, ($$))
 import {-# SOURCE #-} Agda.TypeChecking.Monad.Pure
 

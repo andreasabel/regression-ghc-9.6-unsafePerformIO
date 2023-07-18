@@ -2,7 +2,7 @@
 {-# LANGUAGE NondecreasingIndentation #-}
 {-# LANGUAGE RecursiveDo #-}
 
-{-# OPTIONS_GHC -Wall #-}
+-- {-# OPTIONS_GHC -Wall #-}
 
 {-| This module deals with finding imported modules and loading their
     interface files.
@@ -501,7 +501,6 @@ createInterfaceIsolated
      -- ^ Optional: the source code and some information about the source code.
   -> TCM ModuleInfo
 createInterfaceIsolated x file msrc = do
-      cleanCachedLog
 
       ms          <- getImportPath
       range       <- asksTC envRange
@@ -524,7 +523,6 @@ createInterfaceIsolated x file msrc = do
       -- than a type error or an IO exception is encountered in an
       -- imported module.
       (mi, newModToSource, newDecodedModules) <- (either throwError pure =<<) $
-           withoutCache $
            -- The cache should not be used for an imported module, and it
            -- should be restored after the module has been type-checked
            freshTCM $

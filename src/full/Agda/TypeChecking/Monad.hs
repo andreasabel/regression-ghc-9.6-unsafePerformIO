@@ -16,7 +16,6 @@ module Agda.TypeChecking.Monad
     , module Agda.TypeChecking.Monad.Signature
     , module Agda.TypeChecking.Monad.State
     , module Agda.TypeChecking.Monad.Trace
-    , module Agda.TypeChecking.Monad.Caching
     ) where
 
 import Agda.TypeChecking.Monad.Base
@@ -36,4 +35,3 @@ import Agda.TypeChecking.Monad.Pure
 import Agda.TypeChecking.Monad.Signature
 import Agda.TypeChecking.Monad.State
 import Agda.TypeChecking.Monad.Trace
-import Agda.TypeChecking.Monad.Caching
