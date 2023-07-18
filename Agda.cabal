@@ -308,7 +308,6 @@ library
       Agda.TypeChecking.Monad.Pure
       Agda.TypeChecking.Monad.Signature
       Agda.TypeChecking.Monad.State
-      Agda.TypeChecking.Monad.Statistics
       Agda.TypeChecking.Monad.Trace
       Agda.TypeChecking.Monad
       Agda.TypeChecking.Positivity.Occurrence
