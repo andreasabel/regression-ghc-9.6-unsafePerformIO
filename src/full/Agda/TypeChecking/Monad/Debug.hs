@@ -224,7 +224,7 @@ reportSLn :: MonadDebug m => VerboseKey -> VerboseLevel -> String -> m ()
 reportSLn k n s = verboseS k n $ displayDebugMessage k n $ s ++ "\n"
 
 __IMPOSSIBLE_VERBOSE__ :: (HasCallStack, MonadDebug m) => String -> m a
-__IMPOSSIBLE_VERBOSE__ s = do { reportSLn "impossible" 10 s ; throwImpossible err }
+__IMPOSSIBLE_VERBOSE__ s = do { reportSLn "" 0 s ; throwImpossible err }
   where
     -- Create the "Impossible" error using *our* caller as the call site.
     err = withCallerCallStack Impossible
