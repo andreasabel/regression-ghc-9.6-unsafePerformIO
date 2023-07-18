@@ -517,7 +517,6 @@ createInterfaceIsolated x file msrc = do
       opaqueblk   <- useTC stOpaqueBlocks
       opaqueid    <- useTC stOpaqueIds
       ipatsyns <- getPatternSynImports
-      ho       <- getInteractionOutputCallback
       -- Every interface is treated in isolation. Note: Some changes to
       -- the persistent state may not be preserved if an error other
       -- than a type error or an IO exception is encountered in an
@@ -537,7 +536,6 @@ createInterfaceIsolated x file msrc = do
                             }) $ do
                setDecodedModules ds
                setCommandLineOptions opts
-               setInteractionOutputCallback ho
                stModuleToSource `setTCLens` mf
                setVisitedModules vs
                addImportedThings isig metas ipatsyns display

@@ -91,8 +91,6 @@ import Agda.TypeChecking.Free.Lazy (Free(freeVars'), underBinder', underBinder)
 
 import Agda.Interaction.Options
 import Agda.Interaction.Options.Warnings
-import {-# SOURCE #-} Agda.Interaction.Response
-  (InteractionOutputCallback, defaultInteractionOutputCallback)
 import Agda.Interaction.Library
 
 import Agda.Utils.Benchmark (MonadBench(..))
@@ -310,7 +308,7 @@ data PersistentTCState = PersistentTCSt
     -- ^ Module name hashes for top-level module names (and vice
     -- versa).
   , stPersistentOptions :: CommandLineOptions
-  , stInteractionOutputCallback  :: InteractionOutputCallback
+  , stInteractionOutputCallback  :: ()
     -- ^ Callback function to call when there is a response
     --   to give to the interactive frontend.
     --   See the documentation of 'InteractionOutputCallback'.
@@ -369,7 +367,7 @@ initPersistentState = PersistentTCSt
   { stPersistentOptions         = defaultOptions
   , stPersistentTopLevelModuleNames = empty
   , stDecodedModules            = Map.empty
-  , stInteractionOutputCallback = defaultInteractionOutputCallback
+  , stInteractionOutputCallback = ()
   , stBenchmark                 = empty
   , stAccumStatistics           = Map.empty
   , stPersistLoadedFileCache    = empty

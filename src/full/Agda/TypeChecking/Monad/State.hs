@@ -18,9 +18,6 @@ import qualified Data.HashMap.Strict as HMap
 
 import Agda.Benchmarking
 
-import Agda.Interaction.Response
-  (InteractionOutputCallback, Response)
-
 import Agda.Syntax.Common
 import Agda.Syntax.Scope.Base
 import qualified Agda.Syntax.Concrete.Name as C
@@ -413,21 +410,6 @@ addForeignCode backend code = do
   modifyTCLens (stForeignCode . key backend) $
     Just . ForeignCodeStack . (ForeignCode r code :) . maybe [] getForeignCodeStack
 
----------------------------------------------------------------------------
--- * Interaction output callback
----------------------------------------------------------------------------
-
-getInteractionOutputCallback :: ReadTCState m => m InteractionOutputCallback
-getInteractionOutputCallback
-  = getsTC $ stInteractionOutputCallback . stPersistentState
-
-appInteractionOutputCallback :: Response -> TCM ()
-appInteractionOutputCallback r
-  = getInteractionOutputCallback >>= \ cb -> cb r
-
-setInteractionOutputCallback :: InteractionOutputCallback -> TCM ()
-setInteractionOutputCallback cb
-  = modifyPersistentState $ \ s -> s { stInteractionOutputCallback = cb }
 
 ---------------------------------------------------------------------------
 -- * Pattern synonyms

@@ -14,8 +14,6 @@ import qualified Data.Set as Set
 import Agda.Syntax.Position
 import qualified Agda.Syntax.Position as P
 
-import Agda.Interaction.Response
-
 import Agda.TypeChecking.Monad.Base
   hiding (ModuleInfo, MetaInfo, Primitive, Constructor, Record, Function, Datatype)
 import Agda.TypeChecking.Monad.Debug
