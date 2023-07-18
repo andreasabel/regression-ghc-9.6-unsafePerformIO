@@ -15,7 +15,6 @@ import System.FilePath ((</>))
 
 import Agda.TypeChecking.Monad.Base
 import Agda.TypeChecking.Monad.State
-import Agda.Interaction.Library (getPrimitiveLibDir)
 import Agda.Interaction.Options
 
 import Agda.Utils.Lens
@@ -198,20 +197,13 @@ builtinModules = builtinModulesWithSafePostulates `Set.union`
                  builtinModulesWithUnsafePostulates
 
 isPrimitiveModule :: MonadIO m => FilePath -> m Bool
-isPrimitiveModule file = do
-  libdirPrim <- liftIO getPrimitiveLibDir
-  return (file `Set.member` Set.map (libdirPrim </>) primitiveModules)
+isPrimitiveModule file = return False
 
 isBuiltinModule :: MonadIO m => FilePath -> m Bool
-isBuiltinModule file = do
-  libdirPrim <- liftIO getPrimitiveLibDir
-  return (file `Set.member` Set.map (libdirPrim </>) builtinModules)
+isBuiltinModule file = return False
 
 isBuiltinModuleWithSafePostulates :: MonadIO m => FilePath -> m Bool
-isBuiltinModuleWithSafePostulates file = do
-  libdirPrim <- liftIO getPrimitiveLibDir
-  let safeBuiltins   = Set.map (libdirPrim </>) builtinModulesWithSafePostulates
-  return (file `Set.member` safeBuiltins)
+isBuiltinModuleWithSafePostulates file = return False
 
 ---------------------------------------------------------------------------
 -- ** Include directories

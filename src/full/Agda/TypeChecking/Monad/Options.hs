@@ -36,8 +36,7 @@ import Agda.TypeChecking.Monad.Trace
 import Agda.Interaction.FindFile
 import Agda.Interaction.Options
 import qualified Agda.Interaction.Options.Lenses as Lens
-import Agda.Interaction.Library
-import Agda.Interaction.Library.Base (libAbove, libFile)
+import Agda.Interaction.Library.Base
 
 import Agda.Utils.FileName
 import Agda.Utils.Functor
@@ -144,8 +143,7 @@ getAgdaLibFilesWithoutTopLevelModuleName
   -> TCM [AgdaLibFile]
 getAgdaLibFilesWithoutTopLevelModuleName f = do
   useLibs <- optUseLibs <$> commandLineOptions
-  if | useLibs   -> libToTCM $ mkLibM [] $ getAgdaLibFiles' root
-     | otherwise -> return []
+  if | otherwise -> return []
   where
   root = takeDirectory $ filePath f
 
@@ -169,7 +167,7 @@ getLibraryOptions
   :: AbsolutePath        -- ^ The file name.
   -> TopLevelModuleName  -- ^ The top-level module name.
   -> TCM [OptionsPragma]
-getLibraryOptions f m = map _libPragmas <$> getAgdaLibFiles f m
+getLibraryOptions f m = return []
 
 setLibraryPaths
   :: AbsolutePath
@@ -180,37 +178,21 @@ setLibraryPaths root o =
   setLibraryIncludes =<< addDefaultLibraries root o
 
 setLibraryIncludes :: CommandLineOptions -> TCM CommandLineOptions
-setLibraryIncludes o
-  | not (optUseLibs o) = pure o
-  | otherwise = do
-    let libs = optLibraries o
-    installed <- libToTCM $ getInstalledLibraries (optOverrideLibrariesFile o)
-    paths     <- libToTCM $ libraryIncludePaths (optOverrideLibrariesFile o) installed libs
-    return o{ optIncludePaths = paths ++ optIncludePaths o }
+setLibraryIncludes o = return o
 
 addDefaultLibraries
   :: AbsolutePath
      -- ^ The base directory of relative paths.
   -> CommandLineOptions
   -> TCM CommandLineOptions
-addDefaultLibraries root o
-  | not (null $ optLibraries o) || not (optUseLibs o) = pure o
-  | otherwise = do
-  (libs, incs) <- libToTCM $ getDefaultLibraries (filePath root) (optDefaultLibs o)
-  return o{ optIncludePaths = incs ++ optIncludePaths o, optLibraries = libs }
+addDefaultLibraries root o = return o
 
 -- This function is only called when an interactor exists
 -- (i.e. when Agda actually does something).
 addTrustedExecutables
   :: CommandLineOptions
   -> TCM CommandLineOptions
-addTrustedExecutables o = do
-  trustedExes <- libToTCM $ getTrustedExecutables
-  -- Wen, 2020-06-03
-  -- Replace the map wholesale instead of computing the union because this function
-  -- should never be called more than once, and doing so either has the same result
-  -- or is a security risk.
-  return o{ optTrustedExecutables = trustedExes }
+addTrustedExecutables o = return o
 
 setOptionsFromPragma :: OptionsPragma -> TCM ()
 setOptionsFromPragma ps = setCurrentRange (pragmaRange ps) $ do
@@ -267,15 +249,6 @@ setIncludeDirs incs root = do
   incs <- return $ if null incs then ["."] else incs
   -- Make paths absolute
   incs <- return $  map (mkAbsolute . (filePath root </>)) incs
-
-  -- Andreas, 2013-10-30  Add default include dir
-      -- NB: This is an absolute file name, but
-      -- Agda.Utils.FilePath wants to check absoluteness anyway.
-  primdir <- liftIO $ mkAbsolute <$> getPrimitiveLibDir
-      -- We add the default dir at the end, since it is then
-      -- printed last in error messages.
-      -- Might also be useful to overwrite default imports...
-  incs <- return $ nubOn id $ incs ++ [primdir]
 
   reportSDoc "setIncludeDirs" 10 $ return $ vcat
     [ "Old include directories:"

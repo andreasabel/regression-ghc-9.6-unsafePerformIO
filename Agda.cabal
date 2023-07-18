@@ -211,9 +211,7 @@ library
       Agda.Interaction.FindFile
       Agda.Interaction.Imports
       Agda.Interaction.Monad
-      Agda.Interaction.Library
       Agda.Interaction.Library.Base
-      Agda.Interaction.Library.Parse
       Agda.Interaction.Options
       Agda.Interaction.Options.Help
       Agda.Interaction.Options.Lenses

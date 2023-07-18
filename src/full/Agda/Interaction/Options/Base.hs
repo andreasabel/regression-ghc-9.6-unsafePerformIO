@@ -195,7 +195,7 @@ import qualified System.IO.Unsafe as UNSAFE (unsafePerformIO)
 import Text.EditDistance
 import Text.Read                ( readMaybe )
 
-import Agda.Interaction.Library ( ExeName, LibName, OptionsPragma(..) )
+import Agda.Interaction.Library.Base ( ExeName, LibName, OptionsPragma(..) )
 import Agda.Interaction.Options.Help
   ( Help(HelpFor, GeneralHelp)
   , string2HelpTopic

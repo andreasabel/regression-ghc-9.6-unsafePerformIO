@@ -230,8 +230,6 @@ data LibParseError
       -- ^ I/O error while reading file.
   | MissingFields (List1 String)
       -- ^ Missing these mandatory fields.
-  | DuplicateFields (List1 String)
-      -- ^ These fields occur each more than once.
   | MissingFieldName LineNumber
       -- ^ At the given line number, a field name is missing before the @:@.
   | BadFieldName LineNumber String
@@ -247,12 +245,6 @@ data LibParseError
 -- | Collection of 'LibError's and 'LibWarning's.
 --
 type LibErrWarns = [Either LibError LibWarning]
-
-warnings :: MonadWriter LibErrWarns m => List1 LibWarning -> m ()
-warnings = tell . map Right . toList
-
-warnings' :: MonadWriter LibErrWarns m => List1 LibWarning' -> m ()
-warnings' = tell . map (Right . LibWarning Nothing) . toList
 
 raiseErrors' :: MonadWriter LibErrWarns m => List1 LibError' -> m ()
 raiseErrors' = tell . map (Left . (LibError Nothing)) . toList
@@ -325,7 +317,6 @@ hasLineNumber = \case
   BadLibraryName       _   -> Nothing
   ReadFailure          _ _ -> Nothing
   MissingFields        _   -> Nothing
-  DuplicateFields      _   -> Nothing
   MissingFieldName     l   -> Just l
   BadFieldName         l _ -> Just l
   MissingColonForField l _ -> Just l
@@ -425,7 +416,6 @@ instance Pretty LibParseError where
       ]
 
     MissingFields   xs -> "Missing"   <+> listFields xs
-    DuplicateFields xs -> "Duplicate" <+> listFields xs
 
     MissingFieldName     l   -> atLine l $ "Missing field name"
     BadFieldName         l s -> atLine l $ "Bad field name" <+> text (show s)

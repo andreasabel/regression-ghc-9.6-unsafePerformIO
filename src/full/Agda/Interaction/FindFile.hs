@@ -28,8 +28,6 @@ import qualified Data.Map as Map
 import qualified Data.Text as T
 import System.FilePath
 
-import Agda.Interaction.Library ( findProjectRoot )
-
 import Agda.Syntax.Concrete
 import Agda.Syntax.Parser
 import Agda.Syntax.Parser.Literate (literateExtsShortList)
@@ -87,15 +85,9 @@ mkInterfaceFile fp = do
 toIFile :: SourceFile -> TCM AbsolutePath
 toIFile (SourceFile src) = do
   let fp = filePath src
-  mroot <- ifM (optLocalInterfaces <$> commandLineOptions)
-               {- then -} (pure Nothing)
-               {- else -} (libToTCM $ findProjectRoot (takeDirectory fp))
+  mroot <- pure Nothing
   pure $ replaceModuleExtension ".agdai" $ case mroot of
     Nothing   -> src
-    Just root ->
-      let buildDir = root </> "_build" </> version </> "agda"
-          fileName = makeRelative root fp
-      in mkAbsolute $ buildDir </> fileName
 
 replaceModuleExtension :: String -> AbsolutePath -> AbsolutePath
 replaceModuleExtension ext@('.':_) = mkAbsolute . (++ ext) .  dropAgdaExtension . filePath
