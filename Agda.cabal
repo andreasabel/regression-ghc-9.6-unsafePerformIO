@@ -297,7 +297,6 @@ library
       Agda.TypeChecking.Monad.MetaVars
       Agda.TypeChecking.Monad.Modality
       Agda.TypeChecking.Monad.Mutual
-      Agda.TypeChecking.Monad.Open
       Agda.TypeChecking.Monad.Options
       Agda.TypeChecking.Monad.Pure
       Agda.TypeChecking.Monad.Signature

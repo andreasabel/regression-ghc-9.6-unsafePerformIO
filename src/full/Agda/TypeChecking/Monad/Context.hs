@@ -31,7 +31,6 @@ import Agda.TypeChecking.Free
 import Agda.TypeChecking.Monad.Base
 import Agda.TypeChecking.Monad.Debug
 import Agda.TypeChecking.Substitute
-import Agda.TypeChecking.Monad.Open
 import Agda.TypeChecking.Monad.State
 
 import Agda.Utils.Function
@@ -411,16 +410,12 @@ mapAbstraction_
 mapAbstraction_ = mapAbstraction __DUMMY_DOM__
 
 getLetBindings :: MonadTCEnv tcm => tcm [(Name, LetBinding)]
-getLetBindings = do
-  bs <- asksTC envLetBindings
-  forM (Map.toList bs) $ \ (n, o) -> (,) n <$> getOpen o
+getLetBindings = return []
 
 -- | Add a let bound variable
 {-# SPECIALIZE addLetBinding' :: Origin -> Name -> Term -> Dom Type -> TCM a -> TCM a #-}
 defaultAddLetBinding' :: (ReadTCState m, MonadTCEnv m) => Origin -> Name -> Term -> Dom Type -> m a -> m a
-defaultAddLetBinding' o x v t ret = do
-    vt <- makeOpen $ LetBinding o v t
-    flip localTC ret $ \e -> e { envLetBindings = Map.insert x vt $ envLetBindings e }
+defaultAddLetBinding' o x v t ret = ret
 
 -- | Add a let bound variable
 {-# SPECIALIZE addLetBinding :: ArgInfo -> Origin -> Name -> Term -> Type -> TCM a -> TCM a #-}
@@ -518,8 +513,5 @@ getVarInfo x =
                 return (var n, t)
             _       ->
                 case Map.lookup x def of
-                    Just vt -> do
-                      LetBinding _ v t <- getOpen vt
-                      return (v, t)
                     _       -> fail $ "unbound variable " ++ prettyShow (nameConcrete x) ++
                                 " (id: " ++ prettyShow (nameId x) ++ ")"

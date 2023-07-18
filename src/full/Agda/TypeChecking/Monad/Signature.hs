@@ -40,7 +40,6 @@ import Agda.TypeChecking.Monad.Context
 import Agda.TypeChecking.Monad.Constraints
 import Agda.TypeChecking.Monad.Env
 import Agda.TypeChecking.Monad.Mutual
-import Agda.TypeChecking.Monad.Open
 import Agda.TypeChecking.Monad.Options
 import Agda.TypeChecking.Monad.State
 import Agda.TypeChecking.Monad.Trace
@@ -671,14 +670,7 @@ applySection' new ptel old ts ScopeCopyInfo{ renNames = rd, renModules = rm } = 
 
 -- | Add a display form to a definition (could be in this or imported signature).
 addDisplayForm :: QName -> DisplayForm -> TCM ()
-addDisplayForm x df = do
-  d <- makeOpen df
-  let add = updateDefinition x $ \ def -> def{ defDisplay = d : defDisplay def }
-  ifM (isLocal x)
-    {-then-} (modifySignature add)
-    {-else-} (stImportsDisplayForms `modifyTCLens` HMap.insertWith (++) x [d])
-  whenM (hasLoopingDisplayForm x) $
-    typeError . GenericDocError =<< do "Cannot add recursive display form for" <+> pretty x
+addDisplayForm x df = return ()
 
 isLocal :: ReadTCState m => QName -> m Bool
 isLocal x = HMap.member x <$> useR (stSignature . sigDefinitions)
