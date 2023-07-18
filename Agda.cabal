@@ -261,7 +261,6 @@ library
       Agda.Syntax.Scope.Monad
       Agda.Syntax.TopLevelModuleName
       Agda.Syntax.Translation.AbstractToConcrete
-      Agda.Syntax.Translation.ConcreteToAbstract
       Agda.TypeChecking.CompiledClause
       Agda.TypeChecking.Coverage.SplitTree
       Agda.TypeChecking.Errors
