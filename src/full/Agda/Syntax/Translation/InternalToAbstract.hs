@@ -59,7 +59,6 @@ import Agda.TypeChecking.DisplayForm
 import {-# SOURCE #-} Agda.TypeChecking.Datatypes
 import Agda.TypeChecking.Free
 import Agda.TypeChecking.Substitute
-import Agda.TypeChecking.SyntacticEquality
 import Agda.TypeChecking.Telescope
 
 import Agda.Interaction.Options
@@ -437,15 +436,7 @@ reifyPathPConstAsPath x es = return (x,es)
 -- | Check if the term matches an existing let-binding, in that case use the corresponding variable,
 --   otherwise reify using the continuation.
 tryReifyAsLetBinding :: MonadReify m => Term -> m Expr -> m Expr
-tryReifyAsLetBinding v fallback = ifM (asksTC $ not . envFoldLetBindings) fallback $ do
-  letBindings <- do
-    binds  <- asksTC (Map.toAscList . envLetBindings)
-    opened <- forM binds $ \ (name, open) -> (,name) <$> getOpen open
-    return [ (body, name) | (LetBinding UserWritten body _, name) <- opened, not $ isNoName name ]  -- Only fold user-written lets
-  matchingBindings <- filterM (\t -> checkSyntacticEquality v (fst t) (\_ _ -> return True) (\_ _ -> return False)) letBindings
-  case matchingBindings of
-    (_, name) : _ -> return $ A.Var name
-    []            -> fallback
+tryReifyAsLetBinding v fallback = fallback
 
 reifyTerm ::
       MonadReify m

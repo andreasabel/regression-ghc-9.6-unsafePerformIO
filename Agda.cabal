@@ -337,7 +337,6 @@ library
       Agda.TypeChecking.Substitute
       Agda.TypeChecking.Substitute.Class
       Agda.TypeChecking.Substitute.DeBruijn
-      Agda.TypeChecking.SyntacticEquality
       Agda.TypeChecking.Telescope
       Agda.TypeChecking.Telescope.Path
       Agda.TypeChecking.Warnings
