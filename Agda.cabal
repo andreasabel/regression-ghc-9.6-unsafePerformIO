@@ -292,7 +292,6 @@ library
       Agda.TypeChecking.Free.Lazy
       Agda.TypeChecking.Free.Precompute
       Agda.TypeChecking.Free.Reduce
-      Agda.TypeChecking.Irrelevance
       Agda.TypeChecking.MetaVars.Mention
       Agda.TypeChecking.Monad.Base
       Agda.TypeChecking.Monad.Benchmark
@@ -316,10 +315,6 @@ library
       Agda.TypeChecking.Monad.Statistics
       Agda.TypeChecking.Monad.Trace
       Agda.TypeChecking.Monad
-      Agda.TypeChecking.Names
-      Agda.TypeChecking.Patterns.Abstract
-      Agda.TypeChecking.Patterns.Internal
-      Agda.TypeChecking.Patterns.Match
       Agda.TypeChecking.Positivity.Occurrence
       Agda.TypeChecking.Pretty
       Agda.TypeChecking.Pretty.Call
@@ -327,7 +322,6 @@ library
       Agda.TypeChecking.Pretty.Warning
       Agda.TypeChecking.Reduce
       Agda.TypeChecking.Reduce.Monad
-      Agda.TypeChecking.Sort
       Agda.TypeChecking.Substitute
       Agda.TypeChecking.Substitute.Class
       Agda.TypeChecking.Substitute.DeBruijn

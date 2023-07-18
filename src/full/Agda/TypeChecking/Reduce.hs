@@ -54,7 +54,6 @@ import Agda.TypeChecking.CompiledClause
 import Agda.TypeChecking.Reduce.Monad
 
 import {-# SOURCE #-} Agda.TypeChecking.CompiledClause.Match
-import {-# SOURCE #-} Agda.TypeChecking.Patterns.Match
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
 
 import Agda.Utils.Functor
@@ -773,19 +772,7 @@ appDefE'' v cls rewr es = traceSDoc "tc.reduce" 90 ("appDefE' v = " <+> pretty v
               npats = length pats
               nvars = size $ clauseTel cl
           -- if clause is underapplied, skip to next clause
-          if length es < npats then goCls cls es else do
-            let (es0, es1) = splitAt npats es
-            (m, es0) <- matchCopatterns pats es0
-            let es = es0 ++ es1
-            case m of
-              No         -> goCls cls es
-              Yes simpl vs -- vs is the subst. for the variables bound in body
-                | Just w <- body -> do -- clause has body?
-                    -- TODO: let matchPatterns also return the reduced forms
-                    -- of the original arguments!
-                    -- Andreas, 2013-05-19 isn't this done now?
-                    let sigma = buildSubstitution impossible nvars vs
-                    return $ YesReduction simpl $ applySubst sigma w `applyE` es1
+          goCls cls es
 
 instance Reduce a => Reduce (Closure a) where
     reduce' cl = do

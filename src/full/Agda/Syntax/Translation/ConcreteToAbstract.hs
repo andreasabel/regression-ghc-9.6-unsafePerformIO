@@ -70,7 +70,6 @@ import Agda.TypeChecking.Monad.MetaVars (registerInteractionPoint)
 import Agda.TypeChecking.Monad.Debug
 import Agda.TypeChecking.Monad.Env (insideDotPattern, isInsideDotPattern, getCurrentPath)
 
-import Agda.TypeChecking.Patterns.Abstract (expandPatternSynonyms)
 import Agda.TypeChecking.Pretty hiding (pretty, prettyA)
 import Agda.TypeChecking.Warnings
 
@@ -2156,7 +2155,7 @@ instance ToAbstract NiceDeclaration where
       bindName a PatternSynName n y
       -- Expanding pattern synonyms already at definition makes it easier to
       -- fold them back when printing (issue #2762).
-      ep <- expandPatternSynonyms p
+      let ep = p
       modifyPatternSyns (Map.insert y (as, ep))
       return [A.PatternSynDef y (map (fmap BindName) as) p]   -- only for highlighting, so use unexpanded version
       where unVarName (VarName a _) = return a
@@ -2556,20 +2555,7 @@ instance ToAbstract C.Pragma where
              A.LHS _ (A.LHSHead _ ps) -> return ps
              _ -> err
 
-    -- Andreas, 2016-08-08, issue #2132
-    -- Remove pattern synonyms on lhs
-    (hd, ps) <- do
-      let mkP | isPatSyn  = A.PatternSynP (PatRange $ getRange lhs) (unambiguous hd)
-              | otherwise = A.DefP (PatRange $ getRange lhs) (unambiguous hd)
-      p <- expandPatternSynonyms $ mkP ps
-      case p of
-        A.DefP _ f ps | Just hd <- getUnambiguous f -> return (hd, ps)
-        A.ConP _ c ps | Just hd <- getUnambiguous c -> return (hd, ps)
-        A.PatternSynP{} -> __IMPOSSIBLE__
-        _ -> err
-
-    rhs <- toAbstract rhs
-    return [A.DisplayPragma hd ps rhs]
+    return []
 
   -- A warning attached to an ambiguous name shall apply to all disambiguations.
   toAbstract (C.WarningOnUsage _ x str) = do
