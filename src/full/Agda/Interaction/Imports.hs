@@ -8,9 +8,7 @@
     interface files.
 -}
 module Agda.Interaction.Imports
-  ( pattern TypeCheck
-  , Source(..)
-  , scopeCheckImport
+  ( Source(..)
   , parseSource
   , typeCheckMain
   ) where
@@ -39,11 +37,9 @@ import Agda.Syntax.Abstract.Name
 import Agda.Syntax.Common
 import Agda.Syntax.Parser
 import Agda.Syntax.Position
-import Agda.Syntax.Scope.Base
 import Agda.Syntax.TopLevelModuleName
 import Agda.Syntax.Translation.ConcreteToAbstract as CToA
 
-import Agda.TypeChecking.Errors
 import Agda.TypeChecking.Warnings hiding (warnings)
 import Agda.TypeChecking.Monad
 import qualified Agda.TypeChecking.Monad.Benchmark as Bench
@@ -188,29 +184,6 @@ addImportedThings isig metas patsyns display userwarn
   stOpaqueIds            `modifyTCLens` \ imp -> imp `Map.union` oid
   addImportedInstances isig
 
--- | Scope checks the given module. A proper version of the module
--- name (with correct definition sites) is returned.
-
-scopeCheckImport ::
-  TopLevelModuleName -> ModuleName ->
-  TCM (ModuleName, Map ModuleName Scope)
-scopeCheckImport top x = do
-    reportSLn "import.scope" 5 $ "Scope checking " ++ prettyShow x
-    verboseS "import.scope" 10 $ do
-      visited <- prettyShow <$> getPrettyVisitedModules
-      reportSLn "import.scope" 10 $ "  visited: " ++ visited
-    -- Since scopeCheckImport is called from the scope checker,
-    -- we need to reimburse her account.
-    i <- Bench.billTo [] $ getNonMainInterface top Nothing
-    addImport top
-
-    -- If that interface was supposed to raise a warning on import, do so.
-    whenJust (iImportWarning i) $ warning . UserWarning
-
-    -- let s = publicModules $ iInsideScope i
-    let s = iScope i
-    return (iModuleName i `withRangesOfQ` mnameToConcrete x, s)
-
 -- | If the module has already been visited (without warnings), then
 -- its interface is returned directly. Otherwise the computation is
 -- used to find the interface and the computed interface is stored for
@@ -320,26 +293,6 @@ typeCheckMain src = do
     -- not the importing one (which would be the default).
     setCurrentRange m $ checkModuleName m f Nothing
 
--- | Tries to return the interface associated to the given (imported) module.
---   The time stamp of the relevant interface file is also returned.
---   Calls itself recursively for the imports of the given module.
---   May type check the module.
---   An error is raised if a warning is encountered.
---
---   Do not use this for the main file, use 'typeCheckMain' instead.
-
-getNonMainInterface
-  :: TopLevelModuleName
-  -> Maybe Source
-     -- ^ Optional: the source code and some information about the source code.
-  -> TCM Interface
-getNonMainInterface x msrc = do
-  -- Preserve/restore the current pragma options, which will be mutated when loading
-  -- and checking the interface.
-  mi <- bracket_ (useTC stPragmaOptions) (stPragmaOptions `setTCLens`) $
-          getInterface x NotMainInterface msrc
-  tcWarningsToError $ miWarnings mi
-  return (miInterface mi)
 
 -- | A more precise variant of 'getNonMainInterface'. If warnings are
 -- encountered then they are returned instead of being turned into
