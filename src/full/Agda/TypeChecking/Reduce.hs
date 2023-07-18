@@ -9,17 +9,16 @@ module Agda.TypeChecking.Reduce
  -- Check for meta (no reduction)
  , IsMeta, isMeta
  -- Reduction and blocking
- , Reduce, reduce', reduceB', reduce, reduceB, reduceWithBlocker, reduceIApply'
+ , Reduce, reduce', reduce, reduceIApply'
  , reduceDefCopy, reduceDefCopyTCM
  , reduceHead
  , slowReduceTerm
- , unfoldCorecursion, unfoldCorecursionE
  , unfoldDefinitionE, unfoldDefinitionStep
  , unfoldInlined
  , appDef', appDefE'
- , abortIfBlocked, ifBlocked, isBlocked, fromBlocked, blockOnError
+ , abortIfBlocked, ifBlocked, isBlocked
  -- Simplification
- , Simplify, simplify, simplifyBlocked'
+ , Simplify, simplify
  -- Normalization
  , Normalise, normalise', normalise
  , slowNormaliseArgs
@@ -87,24 +86,8 @@ instantiateWhen p =
 reduce :: (Reduce a, MonadReduce m) => a -> m a
 reduce = liftReduce . reduce'
 
-reduceB :: (Reduce a, MonadReduce m) => a -> m (Blocked a)
-reduceB = liftReduce . reduceB'
-
--- Reduce a term and also produce a blocker signifying when
--- this reduction should be retried.
-reduceWithBlocker :: (Reduce a, IsMeta a, MonadReduce m) => a -> m (Blocker, a)
-reduceWithBlocker a = ifBlocked a
-  (\b a' -> return (b, a'))
-  (\_ a' -> return (neverUnblock, a'))
-
 normalise :: (Normalise a, MonadReduce m) => a -> m a
 normalise = liftReduce . normalise'
-
--- UNUSED
--- -- | Normalise the given term but also preserve blocking tags
--- --   TODO: implement a more efficient version of this.
--- normaliseB :: (MonadReduce m, Reduce t, Normalise t) => t -> m (Blocked t)
--- normaliseB = normalise >=> reduceB
 
 simplify :: (Simplify a, MonadReduce m) => a -> m a
 simplify = liftReduce . simplify'
@@ -116,32 +99,6 @@ isFullyInstantiatedMeta m = do
   case inst of
     InstV inst -> noMetas <$> instantiateFull (instBody inst)
     _ -> return False
-
--- | Blocking on all blockers.
-blockAll :: (Functor f, Foldable f) => f (Blocked a) -> Blocked (f a)
-blockAll bs = blockedOn block $ fmap ignoreBlocking bs
-  where block = unblockOnAll $ foldMap (Set.singleton . blocker) bs
-        blocker NotBlocked{}  = alwaysUnblock
-        blocker (Blocked b _) = b
-
--- | Blocking on any blockers.
-blockAny :: (Functor f, Foldable f) => f (Blocked a) -> Blocked (f a)
-blockAny bs = blockedOn block $ fmap ignoreBlocking bs
-  where block = case foldMap blocker bs of
-                  [] -> alwaysUnblock -- no blockers
-                  bs -> unblockOnAny $ Set.fromList bs
-        blocker NotBlocked{}  = []
-        blocker (Blocked b _) = [b]
-
--- | Run the given computation but turn any errors into blocked computations with the given blocker
-blockOnError :: MonadError TCErr m => Blocker -> m a -> m a
-blockOnError blocker f
-  | blocker == neverUnblock = f
-  | otherwise               = f `catchError` \case
-    TypeError{}         -> throwError $ PatternErr blocker
-    PatternErr blocker' -> throwError $ PatternErr $ unblockOnEither blocker blocker'
-    err@Exception{}     -> throwError err
-    err@IOException{}   -> throwError err
 
 -- | Instantiate something.
 --   Results in an open meta variable or a non meta.
@@ -240,20 +197,6 @@ instance Instantiate Level where
 
 -- Use Traversable instance
 instance Instantiate t => Instantiate (PlusLevel' t)
-
-instance Instantiate a => Instantiate (Blocked a) where
-  instantiate' v@NotBlocked{} = return v
-  instantiate' v@(Blocked b u) = instantiate' b >>= \ case
-    b | b == alwaysUnblock -> notBlocked <$> instantiate' u
-      | otherwise          -> return $ Blocked b u
-
-instance Instantiate Blocker where
-  instantiate' (UnblockOnAll bs) = unblockOnAll . Set.fromList <$> mapM instantiate' (Set.toList bs)
-  instantiate' (UnblockOnAny bs) = unblockOnAny . Set.fromList <$> mapM instantiate' (Set.toList bs)
-  instantiate' b@(UnblockOnMeta x) =
-    ifM (isInstantiatedMeta x) (return alwaysUnblock) (return b)
-  instantiate' b@UnblockOnProblem{} = return b
-  instantiate' b@UnblockOnDef{} = return b
 
 instance Instantiate Sort where
   instantiate' = \case
@@ -366,13 +309,7 @@ instance IsMeta CompareAs where
 ifBlocked
   :: (Reduce t, IsMeta t, MonadReduce m)
   => t -> (Blocker -> t -> m a) -> (NotBlocked -> t -> m a) -> m a
-ifBlocked t blocked unblocked = do
-  t <- reduceB t
-  case t of
-    Blocked m t     -> blocked m t
-    NotBlocked nb t -> case isMeta t of -- #4899: MetaS counts as NotBlocked at the moment
-      Just m    -> blocked (unblockOnMeta m) t
-      Nothing   -> unblocked nb t
+ifBlocked t blocked unblocked = undefined
 
 -- | Throw pattern violation if blocked or a meta.
 abortIfBlocked :: (MonadReduce m, MonadBlock m, IsMeta t, Reduce t) => t -> m t
@@ -383,64 +320,13 @@ isBlocked
   => t -> m (Maybe Blocker)
 isBlocked t = ifBlocked t (\m _ -> return $ Just m) (\_ _ -> return Nothing)
 
--- | Throw a pattern violation if the argument is @Blocked@,
---   otherwise return the value embedded in the @NotBlocked@.
-fromBlocked :: MonadBlock m => Blocked a -> m a
-fromBlocked (Blocked b _) = patternViolation b
-fromBlocked (NotBlocked _ x) = return x
-
 class Reduce t where
   reduce'  :: t -> ReduceM t
-  reduceB' :: t -> ReduceM (Blocked t)
-
-  reduce'  t = ignoreBlocking <$> reduceB' t
-  reduceB' t = notBlocked <$> reduce' t
 
 instance Reduce Type where
     reduce'  (El s t) = workOnTypes $ El s <$> reduce' t
-    reduceB' (El s t) = workOnTypes $ fmap (El s) <$> reduceB' t
 
 instance Reduce Sort where
-    reduceB' s = do
-      s <- instantiate' s
-      let done | MetaS x _ <- s = return $ blocked x s
-               | otherwise      = return $ notBlocked s
-      case s of
-        PiSort a s1 s2 -> reduceB' (s1 , s2) >>= \case
-          Blocked b (s1',s2') -> return $ Blocked b $ PiSort a s1' s2'
-          NotBlocked _ (s1',s2') -> do
-            -- Jesper, 2022-10-12: do instantiateFull here because
-            -- `piSort'` does checking of free variables, and if we
-            -- don't instantiate we might end up blocking on a solved
-            -- metavariable.
-            s2' <- instantiateFull s2'
-            case piSort' a s1' s2' of
-              Left b -> return $ Blocked b $ PiSort a s1' s2'
-              Right s -> reduceB' s
-        FunSort s1 s2 -> reduceB' (s1 , s2) >>= \case
-          Blocked b (s1',s2') -> return $ Blocked b $ FunSort s1' s2'
-          NotBlocked _ (s1',s2') -> do
-            case funSort' s1' s2' of
-              Left b -> return $ Blocked b $ FunSort s1' s2'
-              Right s -> reduceB' s
-        UnivSort s1 -> reduceB' s1 >>= \case
-          Blocked b s1' -> return $ Blocked b $ UnivSort s1'
-          NotBlocked _ s1' -> case univSort' s1' of
-            Left b -> return $ Blocked b $ UnivSort s1'
-            Right s -> reduceB' s
-        Univ u l   -> notBlocked . Univ u <$> reduce l
-        Inf _ _    -> done
-        SizeUniv   -> done
-        LockUniv   -> done
-        LevelUniv  -> do
-          levelUniverseEnabled <- isLevelUniverseEnabled
-          if levelUniverseEnabled
-          then done
-          else return $ notBlocked (mkType 0)
-        IntervalUniv -> done
-        MetaS x es -> done
-        DefS d es  -> done -- postulated sorts do not reduce
-        DummyS{}   -> done
 
 instance Reduce Elim where
   reduce' (Apply v) = Apply <$> reduce' v
@@ -449,14 +335,10 @@ instance Reduce Elim where
 
 instance Reduce Level where
   reduce'  (Max m as) = levelMax m <$> mapM reduce' as
-  reduceB' (Max m as) = fmap (levelMax m) . blockAny <$> traverse reduceB' as
 
 instance Reduce PlusLevel where
-  reduceB' (Plus n l) = fmap (Plus n) <$> reduceB' l
 
 instance (Subst a, Reduce a) => Reduce (Abs a) where
-  reduceB' b@(Abs x _) = fmap (Abs x) <$> underAbstraction_ b reduceB'
-  reduceB' (NoAbs x v) = fmap (NoAbs x) <$> reduceB' v
 
 -- Lists are never blocked
 instance Reduce t => Reduce [t] where
@@ -472,53 +354,26 @@ instance Reduce t => Reduce (Arg t) where
                                          -- Andreas, 2018-03-03, caused #2989.
       _          -> traverse reduce' a
 
-    reduceB' t = traverse id <$> traverse reduceB' t
 
 instance Reduce t => Reduce (Dom t) where
     reduce' = traverse reduce'
-    reduceB' t = traverse id <$> traverse reduceB' t
 
 instance (Reduce a, Reduce b) => Reduce (a,b) where
     reduce' (x,y)  = (,) <$> reduce' x <*> reduce' y
-    reduceB' (x,y) = do
-      x <- reduceB' x
-      y <- reduceB' y
-      let blk = void x `mappend` void y
-          xy  = (ignoreBlocking x , ignoreBlocking y)
-      return $ blk $> xy
 
 instance (Reduce a, Reduce b,Reduce c) => Reduce (a,b,c) where
     reduce' (x,y,z) = (,,) <$> reduce' x <*> reduce' y <*> reduce' z
-    reduceB' (x,y,z) = do
-      x <- reduceB' x
-      y <- reduceB' y
-      z <- reduceB' z
-      let blk = void x `mappend` void y `mappend` void z
-          xyz = (ignoreBlocking x , ignoreBlocking y , ignoreBlocking z)
-      return $ blk $> xyz
 
 reduceIApply :: ReduceM (Blocked Term) -> [Elim] -> ReduceM (Blocked Term)
-reduceIApply = reduceIApply' reduceB'
+reduceIApply = undefined
 
 reduceIApply' :: (Term -> ReduceM (Blocked Term)) -> ReduceM (Blocked Term) -> [Elim] -> ReduceM (Blocked Term)
-reduceIApply' red d (IApply x y r : es) = do
-  view <- intervalView'
-  r <- reduceB' r
-  -- We need to propagate the blocking information so that e.g.
-  -- we postpone "someNeutralPath ?0 = a" rather than fail.
-  case view (ignoreBlocking r) of
-   IZero -> red (applyE x es)
-   IOne  -> red (applyE y es)
-   _     -> fmap (<* r) (reduceIApply' red d es)
 reduceIApply' red d (_ : es) = reduceIApply' red d es
 reduceIApply' _   d [] = d
 
 instance Reduce DeBruijnPattern where
-  reduceB' (DotP o v) = fmap (DotP o) <$> reduceB' v
-  reduceB' p          = return $ notBlocked p
 
 instance Reduce Term where
-  reduceB' = {-# SCC "reduce'<Term>" #-} maybeFastReduceTerm
 
 shouldTryFastReduce :: ReduceM Bool
 shouldTryFastReduce = optFastReduce <$> pragmaOptions
@@ -527,68 +382,10 @@ maybeFastReduceTerm :: Term -> ReduceM (Blocked Term)
 maybeFastReduceTerm v = slowReduceTerm v
 
 slowReduceTerm :: Term -> ReduceM (Blocked Term)
-slowReduceTerm v = do
-    v <- instantiate' v
-    let done | MetaV x _ <- v = return $ blocked x v
-             | otherwise      = return $ notBlocked v
-        iapp = reduceIApply done
-    case v of
---    Andreas, 2012-11-05 not reducing meta args does not destroy anything
---    and seems to save 2% sec on the standard library
---      MetaV x args -> notBlocked . MetaV x <$> reduce' args
-      MetaV x es -> iapp es
-      Def f es   -> flip reduceIApply es $ unfoldDefinitionE reduceB' (Def f []) f es
-      Con c ci es -> do
-          -- Constructors can reduce' when they come from an
-          -- instantiated module.
-          -- also reduce when they are path constructors
-          v <- flip reduceIApply es
-                 $ unfoldDefinitionE reduceB' (Con c ci []) (conName c) es
-          traverse reduceNat v
-      Sort s   -> done
-      Level l  -> ifM (SmallSet.member LevelReductions <$> asksTC envAllowedReductions)
-                    {- then -} (fmap levelTm <$> reduceB' l)
-                    {- else -} done
-      Pi _ _   -> done
-      Lit _    -> done
-      Var _ es  -> iapp es
-      Lam _ _  -> done
-      DontCare _ -> done
-      Dummy{}    -> done
-    where
-      -- NOTE: reduceNat can traverse the entire term.
-      reduceNat v@(Con c ci []) = do
-        mz  <- getBuiltin' builtinZero
-        case v of
-          _ | Just v == mz  -> return $ Lit $ LitNat 0
-          _                 -> return v
-      reduceNat v@(Con c ci [Apply a]) | visible a && isRelevant a = do
-        ms  <- getBuiltin' builtinSuc
-        case v of
-          _ | Just (Con c ci []) == ms -> inc <$> reduce' (unArg a)
-          _                         -> return v
-          where
-            inc = \case
-              Lit (LitNat n) -> Lit $ LitNat $ n + 1
-              w              -> Con c ci [Apply $ defaultArg w]
-      reduceNat v = return v
-
--- Andreas, 2013-03-20 recursive invokations of unfoldCorecursion
--- need also to instantiate metas, see Issue 826.
-unfoldCorecursionE :: Elim -> ReduceM (Blocked Elim)
-unfoldCorecursionE (Proj o p)           = notBlocked . Proj o <$> getOriginalProjection p
-unfoldCorecursionE (Apply (Arg info v)) = fmap (Apply . Arg info) <$>
-  unfoldCorecursion v
-unfoldCorecursionE (IApply x y r) = do -- TODO check if this makes sense
-   [x,y,r] <- mapM unfoldCorecursion [x,y,r]
-   return $ IApply <$> x <*> y <*> r
+slowReduceTerm v = undefined
 
 unfoldCorecursion :: Term -> ReduceM (Blocked Term)
-unfoldCorecursion v = do
-  v <- instantiate' v
-  case v of
-    Def f es -> unfoldDefinitionE unfoldCorecursion (Def f []) f es
-    _ -> slowReduceTerm v
+unfoldCorecursion v = undefined
 
 -- | If the first argument is 'True', then a single delayed clause may
 -- be unfolded.
@@ -686,8 +483,6 @@ reduceHead v = do -- ignoreAbstractMode $ do
           red
         Datatype{ dataClause = Just _ } -> red
         Record{ recClause = Just _ }    -> red
-        _                               -> return $ notBlocked v
-    _ -> return $ notBlocked v
 
 -- | Unfold a single inlined function.
 unfoldInlined :: PureTCM m => Term -> m Term
@@ -700,10 +495,6 @@ unfoldInlined v = do
       let def = theDef info
           irr = isIrrelevant $ defArgInfo info
       case def of   -- Only for simple definitions with no pattern matching (TODO: maybe copatterns?)
-        Function{ funCompiled = Just Done{} }
-          | def ^. funInline , not irr -> do
-              liftReduce $
-                ignoreBlocking <$> unfoldDefinitionE (return . notBlocked) (Def f []) f es
         _ -> return v
     _ -> return v
 
@@ -819,7 +610,6 @@ instance Reduce EqualityView where
 
 instance Reduce t => Reduce (IPBoundary' t) where
   reduce' = traverse reduce'
-  reduceB' = fmap sequenceA . traverse reduceB'
 
 ---------------------------------------------------------------------------
 -- * Simplification
@@ -861,30 +651,7 @@ instance Simplify Bool where
 -- interesting instances:
 
 instance Simplify Term where
-  simplify' v = do
-    v <- instantiate' v
-    let iapp es m = ignoreBlocking <$> reduceIApply' (fmap notBlocked . simplify') (notBlocked <$> m) es
-    case v of
-      Def f vs   -> iapp vs $ do
-        let keepGoing simp v = return (simp, notBlocked v)
-        (simpl, v) <- unfoldDefinition' keepGoing (Def f []) f vs
-        case simpl of
-          YesSimplification -> simplifyBlocked' v -- Dangerous, but if @simpl@ then @v /= Def f vs@
-          NoSimplification  -> Def f <$> simplify' vs
-      MetaV x vs -> iapp vs $ MetaV x  <$> simplify' vs
-      Con c ci vs-> iapp vs $ Con c ci <$> simplify' vs
-      Sort s     -> Sort     <$> simplify' s
-      Level l    -> levelTm  <$> simplify' l
-      Pi a b     -> Pi       <$> simplify' a <*> simplify' b
-      Lit l      -> return v
-      Var i vs   -> iapp vs $ Var i    <$> simplify' vs
-      Lam h v    -> Lam h    <$> simplify' v
-      DontCare v -> dontCare <$> simplify' v
-      Dummy{}    -> return v
-
-simplifyBlocked' :: Simplify t => Blocked t -> ReduceM t
-simplifyBlocked' (Blocked _ t) = return t
-simplifyBlocked' (NotBlocked _ t) = simplify' t  -- Andrea(s), 2014-12-05 OK?
+  simplify' v = return v
 
 instance Simplify t => Simplify (Type' t) where
     simplify' (El s t) = El <$> simplify' s <*> simplify' t

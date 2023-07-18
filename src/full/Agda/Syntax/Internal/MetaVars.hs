@@ -87,11 +87,3 @@ noMetas = getAll . allMetas (\ _m -> All False)
 --   @firstMeta == listToMaybe . allMetasList@.
 firstMeta :: AllMetas a => a -> Maybe MetaId
 firstMeta = getFirst . allMetas (First . Just)
-
--- | A blocker that unblocks if any of the metas in a term are solved.
-unblockOnAnyMetaIn :: AllMetas t => t -> Blocker
-unblockOnAnyMetaIn t = unblockOnAnyMeta $ allMetas Set.singleton t
-
--- | A blocker that unblocks if any of the metas in a term are solved.
-unblockOnAllMetasIn :: AllMetas t => t -> Blocker
-unblockOnAllMetasIn t = unblockOnAllMetas $ allMetas Set.singleton t

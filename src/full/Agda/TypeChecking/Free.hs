@@ -57,7 +57,7 @@ module Agda.TypeChecking.Free
     , flexRigOccurrenceIn
     , closed
     , MetaSet
-    , insertMetaSet, foldrMetaSet, metaSetToBlocker
+    , insertMetaSet, foldrMetaSet
     ) where
 
 import Prelude hiding (null)

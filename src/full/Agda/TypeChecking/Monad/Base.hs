@@ -2087,7 +2087,7 @@ defaultDefn info x t lang def = Defn
   , defNoCompilation  = False
   , defInjective      = False
   , defCopatternLHS   = False
-  , defBlocked        = NotBlocked ReallyNotBlocked ()
+  , defBlocked        = undefined
   , defLanguage       = lang
   , theDef            = def
   }
@@ -3026,7 +3026,7 @@ redBind ma f k = do
 -- | Three cases: 1. not reduced, 2. reduced, but blocked, 3. reduced, not blocked.
 data IsReduced
   = NotReduced
-  | Reduced    (Blocked ())
+  | Reduced   ()
 
 data MaybeReduced a = MaybeRed
   { isReduced     :: IsReduced
@@ -3043,8 +3043,7 @@ type MaybeReducedElims = [MaybeReduced Elim]
 notReduced :: a -> MaybeReduced a
 notReduced x = MaybeRed NotReduced x
 
-reduced :: Blocked (Arg Term) -> MaybeReduced (Arg Term)
-reduced b = MaybeRed (Reduced $ () <$ b) $ ignoreBlocking b
+reduced b = undefined
 
 -- | Controlling 'reduce'.
 data AllowedReduction

@@ -61,10 +61,6 @@ reallyFree :: (MonadReduce m, Reduce a, ForceNotFree a)
 reallyFree xs v = do
   (mxs , v') <- forceNotFree xs v
   case IntMap.foldr pickFree NotFree mxs of
-    MaybeFree ms
-      | null ms   -> return $ Right Nothing
-      | otherwise -> return $ Left $ Blocked blocker ()
-      where blocker = metaSetToBlocker ms
     NotFree -> return $ Right (Just v')
 
   where

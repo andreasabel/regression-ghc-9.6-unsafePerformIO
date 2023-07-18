@@ -33,7 +33,6 @@ solvingProblems pids m = verboseBracket "tc.constr.solve" 50 ("working on proble
         (reportSLn "tc.constr.solve" 50 $ "problem " ++ show pid ++ " was not solved.")
       $ {- else -} do
         reportSLn "tc.constr.solve" 50 $ "problem " ++ show pid ++ " was solved!"
-        wakeConstraints (wakeIfBlockedOnProblem pid . constraintUnblocker)
   return x
 
 isProblemSolved :: (MonadTCEnv m, ReadTCState m) => ProblemId -> m Bool
@@ -155,8 +154,6 @@ class ( MonadTCEnv m
   --   True solve constraints even if already 'isSolvingConstraints'.
   solveSomeAwakeConstraints :: (ProblemConstraint -> Bool) -> Bool -> m ()
 
-  wakeConstraints :: (ProblemConstraint-> WakeUp) -> m ()
-
   stealConstraints :: ProblemId -> m ()
 
   modifyAwakeConstraints :: (Constraints -> Constraints) -> m ()
@@ -171,7 +168,6 @@ instance MonadConstraint m => MonadConstraint (ReaderT e m) where
   stealConstraints          = lift . stealConstraints
   modifyAwakeConstraints    = lift . modifyAwakeConstraints
   modifySleepingConstraints = lift . modifySleepingConstraints
-  wakeConstraints = lift . wakeConstraints
 
 -- | Add new a constraint
 addConstraint' :: Blocker -> Constraint -> TCM ()
@@ -228,14 +224,6 @@ shouldPostponeInstanceSearch =
   and2M ((^. stConsideringInstance) <$> getTCState)
         (not . optOverlappingInstances <$> pragmaOptions)
   `or2M` ((^. stPostponeInstanceSearch) <$> getTCState)
-
--- | Wake constraints matching the given predicate (and aren't instance
---   constraints if 'shouldPostponeInstanceSearch').
-wakeConstraints' :: MonadConstraint m => (ProblemConstraint -> WakeUp) -> m ()
-wakeConstraints' p = do
-  skipInstance <- shouldPostponeInstanceSearch
-  let skip c = skipInstance && isInstanceConstraint (clValue $ theConstraint c)
-  wakeConstraints $ wakeUpWhen (not . skip) p
 
 ---------------------------------------------------------------------------
 -- * Lenses

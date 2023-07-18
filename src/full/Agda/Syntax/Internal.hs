@@ -2,7 +2,6 @@
 
 module Agda.Syntax.Internal
     ( module Agda.Syntax.Internal
-    , module Agda.Syntax.Internal.Blockers
     , module Agda.Syntax.Internal.Elim
     , module Agda.Syntax.Internal.Univ
     , module Agda.Syntax.Abstract.Name
@@ -30,7 +29,6 @@ import Agda.Syntax.Common
 import Agda.Syntax.Literal
 import Agda.Syntax.Concrete.Pretty (prettyHiding)
 import Agda.Syntax.Abstract.Name
-import Agda.Syntax.Internal.Blockers
 import Agda.Syntax.Internal.Elim
 import Agda.Syntax.Internal.Univ
 
@@ -376,11 +374,13 @@ newtype BraveTerm = BraveTerm { unBrave :: Term } deriving Show
 -- * Blocked Terms
 ---------------------------------------------------------------------------
 
-type Blocked    = Blocked' Term
-type NotBlocked = NotBlocked' Term
+type Blocker = ()
+
+type Blocked a  = ()
+type NotBlocked = ()
 --
 -- | @'Blocked a@ without the @a@.
-type Blocked_ = Blocked ()
+type Blocked_ = ()
 
 ---------------------------------------------------------------------------
 -- * Definitions
@@ -1138,11 +1138,6 @@ instance Show a => Show (Abs a) where
   showsPrec p (NoAbs x a) = showParen (p > 0) $
     showString "NoAbs " . shows x . showString " " . showsPrec 10 a
 
--- instance Show t => Show (Blocked t) where
---   showsPrec p (Blocked m x) = showParen (p > 0) $
---     showString "Blocked " . shows m . showString " " . showsPrec 10 x
---   showsPrec p (NotBlocked x) = showsPrec p x
-
 ---------------------------------------------------------------------------
 -- * Sized instances and TermSize.
 ---------------------------------------------------------------------------
@@ -1307,9 +1302,6 @@ instance KillRange Clause where
 instance KillRange a => KillRange (Tele a) where
   killRange = fmap killRange
 
-instance KillRange a => KillRange (Blocked a) where
-  killRange = fmap killRange
-
 instance KillRange a => KillRange (Abs a) where
   killRange = fmap killRange
 
@@ -1459,10 +1451,6 @@ instance Pretty a => Pretty (Pattern' a) where
   prettyPrec _ (ProjP _o q)  = text ("." ++ prettyShow q)
   prettyPrec n (IApplyP _o _ _ x) = prettyPrec n x
 --  prettyPrec n (IApplyP _o u0 u1 x) = text "@[" <> prettyPrec 0 u0 <> text ", " <> prettyPrec 0 u1 <> text "]" <> prettyPrec n x
-
-instance Pretty a => Pretty (Blocked a) where
-  pretty (Blocked x a) = ("[" <+> pretty a <+> "]") <> pretty x
-  pretty (NotBlocked _ x) = pretty x
 
 -----------------------------------------------------------------------------
 -- * NFData instances

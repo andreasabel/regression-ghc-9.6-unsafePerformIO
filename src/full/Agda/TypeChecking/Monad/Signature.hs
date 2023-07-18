@@ -222,7 +222,7 @@ addClauses q cls = do
 
   -- Jesper, 2022-10-13: unblock any constraints that were
   -- waiting for more clauses of this function
-  wakeConstraints' $ wakeIfBlockedOnDef q . constraintUnblocker
+
 
 mkPragma :: String -> TCM CompilerPragma
 mkPragma s = CompilerPragma <$> getCurrentRange <*> pure s

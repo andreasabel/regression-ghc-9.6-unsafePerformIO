@@ -251,9 +251,6 @@ instance PrettyTCM NamedMeta where
           s   -> text $ "_" ++ s ++ "_"
     prefix <> inBetween <> text (show (metaId m))
 
-instance PrettyTCM a => PrettyTCM (Blocked a) where
-  prettyTCM (Blocked x a) = ("[" <+> prettyTCM a <+> "]") <> text (P.prettyShow x)
-  prettyTCM (NotBlocked _ x) = prettyTCM x
 
 instance (PrettyTCM k, PrettyTCM v) => PrettyTCM (Map k v) where
   prettyTCM m = "Map" <> braces (sep $ punctuate comma
@@ -298,11 +295,6 @@ instance PrettyTCM Modality where
     ]
 
 instance PrettyTCM Blocker where
-  prettyTCM (UnblockOnAll us) = "all" <> parens (fsep $ punctuate "," $ map prettyTCM $ Set.toList us)
-  prettyTCM (UnblockOnAny us) = "any" <> parens (fsep $ punctuate "," $ map prettyTCM $ Set.toList us)
-  prettyTCM (UnblockOnMeta m) = prettyTCM m
-  prettyTCM (UnblockOnProblem p) = "problem" <+> pretty p
-  prettyTCM (UnblockOnDef q) = "definition" <+> pretty q
 
 instance PrettyTCM CompareAs where
   prettyTCM (AsTermsOf a) = ":" <+> prettyTCMCtx TopCtx a

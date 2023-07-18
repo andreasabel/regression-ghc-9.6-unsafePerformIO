@@ -547,10 +547,6 @@ instance {-# OVERLAPPABLE #-} Apply t => Apply [t] where
   apply  ts args = map (`apply` args) ts
   applyE ts es   = map (`applyE` es) ts
 
-instance Apply t => Apply (Blocked t) where
-  apply  b args = fmap (`apply` args) b
-  applyE b es   = fmap (`applyE` es) b
-
 instance Apply t => Apply (Maybe t) where
   apply  x args = fmap (`apply` args) x
   applyE x es   = fmap (`applyE` es) x
@@ -995,10 +991,6 @@ instance Subst RewriteRule where
                   c
     where n = size gamma
 
-instance Subst a => Subst (Blocked a) where
-  type SubstArg (Blocked a) = SubstArg a
-  applySubst rho b = fmap (applySubst rho) b
-
 instance Subst DisplayForm where
   type SubstArg DisplayForm = Term
   applySubst rho (Display n ps v) =
@@ -1396,8 +1388,6 @@ deriving instance Ord Sort
 deriving instance Eq Level
 deriving instance Ord Level
 deriving instance Eq PlusLevel
-deriving instance Eq NotBlocked
-deriving instance Eq t => Eq (Blocked t)
 deriving instance Eq CandidateKind
 deriving instance Eq Candidate
 
@@ -1554,12 +1544,6 @@ univSort' SizeUniv     = Right $ Inf UType 0
 univSort' LockUniv     = Right $ Type $ ClosedLevel 1
 univSort' LevelUniv    = Right $ Type $ ClosedLevel 1
 univSort' IntervalUniv = Right $ SSet $ ClosedLevel 1
-univSort' (MetaS m _)  = Left neverUnblock
-univSort' FunSort{}    = Left neverUnblock
-univSort' PiSort{}     = Left neverUnblock
-univSort' UnivSort{}   = Left neverUnblock
-univSort' DefS{}       = Left neverUnblock
-univSort' DummyS{}     = Left neverUnblock
 
 univSort :: Sort -> Sort
 univSort s = fromRight (const $ UnivSort s) $ univSort' s
@@ -1605,12 +1589,6 @@ sizeOfSort = \case
   LevelUniv    -> Right $ SmallSort UType
   IntervalUniv -> Right $ SmallSort USSet
   Inf u n      -> Right $ LargeSort u n
-  MetaS m _    -> Left $ unblockOnMeta m
-  FunSort{}    -> Left neverUnblock
-  PiSort{}     -> Left neverUnblock
-  UnivSort{}   -> Left neverUnblock
-  DefS{}       -> Left neverUnblock
-  DummyS{}     -> Left neverUnblock
 
 isSmallSort :: Sort -> Bool
 isSmallSort s = case sizeOfSort s of
@@ -1630,40 +1608,9 @@ funSort' = curry \case
   (Univ u a      , Univ u' b    ) -> Right $ Univ (funUniv u u') $ levelLub a b
   (Inf ua m      , b            ) -> sizeOfSort b <&> \ (SizeOfSort ub n) -> Inf (funUniv ua ub) (max m n)
   (a             , Inf ub n     ) -> sizeOfSort a <&> \ (SizeOfSort ua m) -> Inf (funUniv ua ub) (max m n)
-  (LockUniv      , LevelUniv    ) -> Left neverUnblock
-  (LockUniv      , b            ) -> Right b
-  -- No functions into lock types
-  (a             , LockUniv     ) -> Left neverUnblock
-  -- @IntervalUniv@ behaves like @SSet@, but functions into @Type@ land in @Type@
-  (IntervalUniv  , IntervalUniv ) -> Right $ SSet $ ClosedLevel 0
-  (IntervalUniv  , Univ u b     ) -> Right $ Univ u b
-  (IntervalUniv  , _            ) -> Left neverUnblock
-  (Univ u a      , IntervalUniv ) -> Right $ SSet $ a
-  (_             , IntervalUniv ) -> Left neverUnblock
-  (SizeUniv      , b            ) -> Right b
-  (a             , SizeUniv     ) -> sizeOfSort a >>= \case
-    SmallSort{} -> Right SizeUniv
-    LargeSort{} -> Left neverUnblock
   -- No need to handle @LevelUniv@ in a special way here when --level-universe isn't on,
   -- since this function is currently always called after reduction.
   -- It would be safer to take it into account here, but would imply passing the option along as an argument.
-  (LevelUniv     , LevelUniv    ) -> Right LevelUniv
-  (_             , LevelUniv    ) -> Left neverUnblock
-  (LevelUniv     , b            ) -> sizeOfSort b <&> \case
-    SmallSort ub -> Inf ub 0
-    LargeSort{}  -> b
-  (MetaS m _     , _            ) -> Left $ unblockOnMeta m
-  (_             , MetaS m _    ) -> Left $ unblockOnMeta m
-  (FunSort{}     , _            ) -> Left neverUnblock
-  (_             , FunSort{}    ) -> Left neverUnblock
-  (PiSort{}      , _            ) -> Left neverUnblock
-  (_             , PiSort{}     ) -> Left neverUnblock
-  (UnivSort{}    , _            ) -> Left neverUnblock
-  (_             , UnivSort{}   ) -> Left neverUnblock
-  (DefS{}        , _            ) -> Left neverUnblock
-  (_             , DefS{}       ) -> Left neverUnblock
-  (DummyS{}      , _            ) -> Left neverUnblock
-  (_             , DummyS{}     ) -> Left neverUnblock
 
 funSort :: Sort -> Sort -> Sort
 funSort a b = fromRight (const $ FunSort a b) $ funSort' a b
@@ -1680,7 +1627,6 @@ piSort' a s1 s2Abs@(Abs   _ s2) = case flexRigOccurrenceIn 0 s2 of
       StronglyRigid -> Right $ Inf (funUniv u1 u2) 0
       Unguarded     -> Right $ Inf (funUniv u1 u2) 0
       WeaklyRigid   -> Right $ Inf (funUniv u1 u2) 0
-      Flexible ms   -> Left $ metaSetToBlocker ms
     (Right (LargeSort u1 n) , Right (SmallSort u2)) -> Right $ Inf (funUniv u1 u2) n
     (_                     , Right LargeSort{}    ) ->
        -- large sorts cannot depend on variables
@@ -1694,7 +1640,6 @@ piSort' a s1 s2Abs@(Abs   _ s2) = case flexRigOccurrenceIn 0 s2 of
        --   ]
     (Left blocker          , Right _              ) -> Left blocker
     (Right _               , Left blocker         ) -> Left blocker
-    (Left blocker1         , Left blocker2        ) -> Left $ unblockOnBoth blocker1 blocker2
 
 -- Andreas, 2019-06-20
 -- KEEP the following commented out code for the sake of the discussion on irrelevance.

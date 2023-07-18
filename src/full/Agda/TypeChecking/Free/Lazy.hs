@@ -100,9 +100,6 @@ insertMetaSet m (MetaSet ms) = MetaSet $ HashSet.insert m ms
 foldrMetaSet :: (MetaId -> a -> a) -> a -> MetaSet -> a
 foldrMetaSet f e ms = HashSet.foldr f e $ theMetaSet ms
 
-metaSetToBlocker :: MetaSet -> Blocker
-metaSetToBlocker ms = unblockOnAny $ foldrMetaSet (Set.insert . unblockOnMeta) Set.empty ms
-
 ---------------------------------------------------------------------------
 -- * Flexible and rigid occurrences (semigroup)
 

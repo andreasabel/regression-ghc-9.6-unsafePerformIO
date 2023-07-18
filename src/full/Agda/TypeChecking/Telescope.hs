@@ -498,24 +498,16 @@ isPath :: PureTCM m => Type -> m (Maybe (Dom Type, Abs Type))
 isPath t = ifPath t (\a b -> return $ Just (a,b)) (const $ return Nothing)
 
 ifPath :: PureTCM m => Type -> (Dom Type -> Abs Type -> m a) -> (Type -> m a) -> m a
-ifPath t yes no = ifPathB t yes $ no . ignoreBlocking
+ifPath t yes no = undefined
 
 ifPathB :: PureTCM m => Type -> (Dom Type -> Abs Type -> m a) -> (Blocked Type -> m a) -> m a
-ifPathB t yes no = ifBlocked t
-  (\b t -> no $ Blocked b t)
-  (\nb t -> caseEitherM (pathViewAsPi'whnf <*> pure t)
-    (uncurry yes . fst)
-    (no . NotBlocked nb))
+ifPathB t yes no = undefined
 
 ifNotPathB :: PureTCM m => Type -> (Blocked Type -> m a) -> (Dom Type -> Abs Type -> m a) -> m a
 ifNotPathB = flip . ifPathB
 
 ifPiOrPathB :: PureTCM m => Type -> (Dom Type -> Abs Type -> m a) -> (Blocked Type -> m a) -> m a
-ifPiOrPathB t yes no = ifPiTypeB t
-  (\a b -> yes a b)
-  (\bt -> caseEitherM (pathViewAsPi'whnf <*> pure (ignoreBlocking bt))
-    (uncurry yes . fst)
-    (no . (bt $>)))
+ifPiOrPathB t yes no = undefined
 
 ifNotPiOrPathB :: PureTCM m => Type -> (Blocked Type -> m a) -> (Dom Type -> Abs Type -> m a) -> m a
 ifNotPiOrPathB = flip . ifPiOrPathB
@@ -546,17 +538,13 @@ mustBePi t = ifNotPiType t __IMPOSSIBLE__ $ curry return
 -- | If the given type is a @Pi@, pass its parts to the first continuation.
 --   If not (or blocked), pass the reduced type to the second continuation.
 ifPi :: MonadReduce m => Term -> (Dom Type -> Abs Type -> m a) -> (Term -> m a) -> m a
-ifPi t yes no = ifPiB t yes (no . ignoreBlocking)
+ifPi t yes no = undefined
 
 ifPiB :: (MonadReduce m) => Term -> (Dom Type -> Abs Type -> m a) -> (Blocked Term -> m a) -> m a
-ifPiB t yes no = ifBlocked t
-  (\b t -> no $ Blocked b t) -- Pi type is never blocked
-  (\nb t -> case t of
-    Pi a b -> yes a b
-    _      -> no $ NotBlocked nb t)
+ifPiB t yes no = undefined
 
 ifPiTypeB :: (MonadReduce m) => Type -> (Dom Type -> Abs Type -> m a) -> (Blocked Type -> m a) -> m a
-ifPiTypeB (El s t) yes no = ifPiB t yes (\bt -> no $ El s <$> bt)
+ifPiTypeB (El s t) yes no = undefined
 
 -- | If the given type is a @Pi@, pass its parts to the first continuation.
 --   If not (or blocked), pass the reduced type to the second continuation.
@@ -578,25 +566,13 @@ ifNotPiOrPathType t no yes = do
   ifPiType t yes (\ t -> either (uncurry yes . fst) (const $ no t) =<< (pathViewAsPi'whnf <*> pure t))
 
 shouldBePath :: (PureTCM m, MonadBlock m, MonadTCError m) => Type -> m (Dom Type, Abs Type)
-shouldBePath t = ifPathB t
-  (curry return)
-  (fromBlocked >=> \case
-    El _ Dummy{} -> return (__DUMMY_DOM__, Abs "x" __DUMMY_TYPE__)
-    t -> typeError $ ShouldBePath t)
+shouldBePath t = undefined
 
 shouldBePi :: (PureTCM m, MonadBlock m, MonadTCError m) => Type -> m (Dom Type, Abs Type)
-shouldBePi t = ifPiTypeB t
-  (curry return)
-  (fromBlocked >=> \case
-    El _ Dummy{} -> return (__DUMMY_DOM__, Abs "x" __DUMMY_TYPE__)
-    t -> typeError $ ShouldBePi t)
+shouldBePi t = undefined
 
 shouldBePiOrPath :: (PureTCM m, MonadBlock m, MonadTCError m) => Type -> m (Dom Type, Abs Type)
-shouldBePiOrPath t = ifPiOrPathB t
-  (curry return)
-  (fromBlocked >=> \case
-    El _ Dummy{} -> return (__DUMMY_DOM__, Abs "x" __DUMMY_TYPE__)
-    t -> typeError $ ShouldBePi t) -- TODO: separate error
+shouldBePiOrPath t = undefined
 
 -- | A safe variant of 'piApply'.
 
