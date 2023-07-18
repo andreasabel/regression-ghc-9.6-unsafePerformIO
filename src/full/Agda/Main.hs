@@ -41,8 +41,7 @@ runAgdaWithOptions
   -> TCM ()
 runAgdaWithOptions inputFile opts = do
   setCommandLineOptions opts
-  _ <- typeCheckMain =<< parseSource (SourceFile inputFile)
-  return ()
+  typeCheckMain =<< parseSource (SourceFile inputFile)
 
 
 -- | Run a TCM action in IO; catch and pretty print errors.

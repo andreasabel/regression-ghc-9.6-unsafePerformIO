@@ -33,10 +33,6 @@ import qualified Agda.TypeChecking.Monad.Benchmark as Bench
 import Agda.Interaction.FindFile
 import Agda.Interaction.Library.Base (OptionsPragma(..))
 import Agda.Interaction.Options
-import qualified Agda.Interaction.Options.Lenses as Lens
-
-import Agda.Utils.FileName
-import Agda.Utils.Pretty hiding (Mode)
 
 type AgdaLibFile = ()
 
@@ -104,12 +100,6 @@ data Mode
   deriving (Eq, Show)
 
 
--- | The result and associated parameters of a type-checked file,
---   when invoked directly via interaction or a backend.
---   Note that the constructor is not exported.
-
-type CheckResult = ()
-
 -- | Type checks the main file of the interaction.
 --   This could be the file loaded in the interacting editor (emacs),
 --   or the file passed on the command line.
@@ -127,48 +117,23 @@ type CheckResult = ()
 typeCheckMain
   :: Source
      -- ^ The decorated source code.
-  -> TCM CheckResult
+  -> TCM ()
 typeCheckMain src = do
-  -- liftIO $ putStrLn $ "This is typeCheckMain " ++ prettyShow f
-  -- liftIO . putStrLn . show =<< getVerbosity
-
   -- For the main interface, we also remember the pragmas from the file
   setOptionsFromSourcePragmas src
 
-  -- Now do the type checking via getInterface.
-  checkModuleName' (srcModuleName src) (srcOrigin src)
-
-  mi <- getInterface (srcModuleName src) src
-
-  stCurrentModule `setTCLens'`
-    Just ( iModuleName (miInterface mi)
-         , iTopLevelModuleName (miInterface mi)
-         )
-
-  return ()
-  where
-  checkModuleName' m f =
-    -- Andreas, 2016-07-11, issue 2092
-    -- The error range should be set to the file with the wrong module name
-    -- not the importing one (which would be the default).
-    setCurrentRange m $ checkModuleName m f Nothing
+  getInterface (srcModuleName src) src
 
 
 getInterface
   :: TopLevelModuleName
   -> Source
-  -> TCM ModuleInfo
+  -> TCM ()
 getInterface x src = do
-     -- We remember but reset the pragma options locally
-     -- Issue #3644 (Abel 2020-05-08): Set approximate range for errors in options
-     setCurrentRange (C.modPragmas . srcModule <$> Just src) $
-       -- Now reset the options
-       setCommandLineOptions . stPersistentOptions . stPersistentState =<< getTC
 
      let file = srcOrigin src
      modifyTCLens stModuleToSource $ Map.insert x (srcFilePath file)
 
-     setCommandLineOptions . stPersistentOptions . stPersistentState =<< getTC
      createInterface x file src
 
 
@@ -183,16 +148,10 @@ createInterface
   :: TopLevelModuleName    -- ^ The expected module name.
   -> SourceFile            -- ^ The file to type check.
   -> Source
-  -> TCM ModuleInfo
+  -> TCM ()
 createInterface mname file src = do
   Bench.billTo [Bench.TopModule mname] $ do
     localTC (\e -> e { envCurrentPath = Just (srcFilePath file) }) $ do
-
-    reportSLn "import.iface.create" 5 $
-      "Creating interface for " ++ prettyShow mname ++ "."
-    verboseS "import.iface.create" 10 $ do
-      visited <- prettyShow <$> getPrettyVisitedModules
-      reportSLn "import.iface.create" 10 $ "  visited: " ++ visited
 
     let srcPath = srcFilePath $ srcOrigin src
 
@@ -201,26 +160,9 @@ createInterface mname file src = do
     syntactic <- optSyntacticEquality <$> pragmaOptions
     localTC (\env -> env { envSyntacticEqualityFuel = syntactic }) $ do
 
-    verboseS "import.iface.create" 15 $ do
-      nestingLevel      <- asksTC (pred . length . envImportPath)
-      highlightingLevel <- asksTC envHighlightingLevel
-      reportSLn "import.iface.create" 15 $ unlines
-        [ "  nesting      level: " ++ show nestingLevel
-        , "  highlighting level: " ++ show highlightingLevel
-        ]
-
     -- Scope checking.
-    reportSLn "import.iface.create" 7 "Starting scope checking."
     _topLevel <- Bench.billTo [Bench.Scoping] $ do
       let topDecls = C.modDecls $ srcModule src
       concreteToAbstract_ (TopLevel srcPath mname topDecls)
-    reportSLn "import.iface.create" 7 "Finished scope checking."
 
-    isPrimitiveModule <- Lens.isPrimitiveModule (filePath srcPath)
-
-    return ModuleInfo
-      { miInterface = undefined
-      , miWarnings = undefined
-      , miPrimitive = isPrimitiveModule
-      , miMode = ModuleTypeChecked
-      }
+    return ()
