@@ -42,7 +42,6 @@ import Agda.TypeChecking.Monad.MetaVars (metaType)
 import Agda.TypeChecking.Monad.Pure
 import Agda.TypeChecking.Monad.Signature (HasConstInfo(..), applyDef)
 import Agda.TypeChecking.Pretty
-import Agda.TypeChecking.Records (getDefType)
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope

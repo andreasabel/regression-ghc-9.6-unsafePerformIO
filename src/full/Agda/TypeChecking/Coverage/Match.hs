@@ -39,7 +39,6 @@ import Agda.Syntax.Position
 
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Pretty ( PrettyTCM(..) )
-import Agda.TypeChecking.Records
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.Substitute
 
@@ -214,15 +213,7 @@ instance Subst SplitPattern where
 
 -- | A pattern that matches anything (modulo eta).
 isTrivialPattern :: (HasConstInfo m) => Pattern' a -> m Bool
-isTrivialPattern = \case
-  VarP{}      -> return True
-  DotP{}      -> return True
-  ConP c i ps -> andM $ ((conPLazy i ||) <$> isEtaCon (conName c))
-                      : (map (isTrivialPattern . namedArg) ps)
-  DefP{}      -> return False
-  LitP{}      -> return False
-  ProjP{}     -> return False
-  IApplyP{}   -> return True
+isTrivialPattern _ = return True
 
 -- | If matching succeeds, we return the instantiation of the clause pattern vector
 --   to obtain the split clause pattern vector.

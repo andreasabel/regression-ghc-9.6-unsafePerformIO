@@ -21,7 +21,6 @@ import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Monad hiding (constructorForm)
 import Agda.TypeChecking.Monad.Builtin (getName',builtinHComp, builtinConId)
 import Agda.TypeChecking.Pretty
-import Agda.TypeChecking.Records
 
 import Agda.Utils.Empty
 import Agda.Utils.Functor (for, ($>), (<&>))
@@ -168,18 +167,7 @@ matchCopattern :: MonadMatch m
                => DeBruijnPattern
                -> Elim
                -> m (Match Term, Elim)
-matchCopattern pat@ProjP{} elim@(Proj _ q) = do
-  p <- normaliseProjP pat <&> \case
-         ProjP _ p -> p
-         _         -> __IMPOSSIBLE__
-  q       <- getOriginalProjection q
-  return $ if p == q then (Yes YesSimplification empty, elim)
-                     else (No,                          elim)
--- The following two cases are not impossible, see #2964
-matchCopattern ProjP{} elim@Apply{}   = return (No , elim)
-matchCopattern _       elim@Proj{}    = return (No , elim)
-matchCopattern p       (Apply v) = mapSnd Apply <$> matchPattern p v
-matchCopattern p       e@(IApply x y r) = mapSnd (mergeElim e) <$> matchPattern p (defaultArg r)
+matchCopattern pat@ProjP{} elim@(Proj _ q) = undefined
 
 matchPatterns :: MonadMatch m
               => [NamedArg DeBruijnPattern]

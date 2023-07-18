@@ -330,7 +330,6 @@ library
       Agda.TypeChecking.Pretty.Call
       Agda.TypeChecking.Pretty.Constraint
       Agda.TypeChecking.Pretty.Warning
-      Agda.TypeChecking.Records
       Agda.TypeChecking.Reduce
       Agda.TypeChecking.Reduce.Monad
       Agda.TypeChecking.Sort
