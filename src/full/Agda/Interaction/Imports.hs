@@ -2,21 +2,13 @@
 {-# LANGUAGE NondecreasingIndentation #-}
 {-# LANGUAGE RecursiveDo #-}
 
--- {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall #-}
 
 {-| This module deals with finding imported modules and loading their
     interface files.
 -}
 module Agda.Interaction.Imports
-  ( Mode, pattern ScopeCheck, pattern TypeCheck
-
-  , CheckResult (CheckResult)
-  , crModuleInfo
-  , crInterface
-  , crWarnings
-  , crMode
-  , crSource
-
+  ( pattern TypeCheck
   , Source(..)
   , scopeCheckImport
   , parseSource
@@ -25,14 +17,13 @@ module Agda.Interaction.Imports
 
 import Prelude hiding (null)
 
-import Control.Monad               ( forM, forM_, void )
+import Control.Monad
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
 
-import Data.Either
 import qualified Data.List as List
-import Data.Maybe
+
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.HashMap.Strict as HMap
@@ -40,8 +31,6 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text.Lazy as TL
-
-import System.FilePath ((</>))
 
 import qualified Agda.Syntax.Abstract as A
 import qualified Agda.Syntax.Concrete as C
@@ -72,7 +61,6 @@ import Agda.Utils.Monad
 import Agda.Utils.Null
 import Agda.Utils.Pretty hiding (Mode)
 import Agda.Utils.Hash
-import qualified Agda.Utils.Trie as Trie
 
 type AgdaLibFile = ()
 
@@ -115,7 +103,7 @@ parseSource sourceFile@(SourceFile f) = Bench.billTo [Bench.Parsing] $ do
     }
 
 srcDefaultPragmas :: Source -> [OptionsPragma]
-srcDefaultPragmas src = []
+srcDefaultPragmas _ = []
 
 srcFilePragmas :: Source -> [OptionsPragma]
 srcFilePragmas src = pragmas
@@ -290,22 +278,7 @@ alreadyVisited x isMain _currentOptions getModule =
 --   when invoked directly via interaction or a backend.
 --   Note that the constructor is not exported.
 
-data CheckResult = CheckResult'
-  { crModuleInfo :: ModuleInfo
-  , crSource'    :: Source
-  }
-
--- | Flattened unidirectional pattern for 'CheckResult' for destructuring inside
---   the 'ModuleInfo' field.
-pattern CheckResult :: Interface -> [TCWarning] -> ModuleCheckMode -> Source -> CheckResult
-pattern CheckResult { crInterface, crWarnings, crMode, crSource } <- CheckResult'
-    { crModuleInfo = ModuleInfo
-        { miInterface = crInterface
-        , miWarnings = crWarnings
-        , miMode = crMode
-        }
-    , crSource' = crSource
-    }
+type CheckResult = ()
 
 -- | Type checks the main file of the interaction.
 --   This could be the file loaded in the interacting editor (emacs),
@@ -322,12 +295,10 @@ pattern CheckResult { crInterface, crWarnings, crMode, crSource } <- CheckResult
 --   complete interface is returned.
 
 typeCheckMain
-  :: Mode
-     -- ^ Should the file be type-checked, or only scope-checked?
-  -> Source
+  :: Source
      -- ^ The decorated source code.
   -> TCM CheckResult
-typeCheckMain mode src = do
+typeCheckMain src = do
   -- liftIO $ putStrLn $ "This is typeCheckMain " ++ prettyShow f
   -- liftIO . putStrLn . show =<< getVerbosity
 
@@ -337,14 +308,14 @@ typeCheckMain mode src = do
   -- Now do the type checking via getInterface.
   checkModuleName' (srcModuleName src) (srcOrigin src)
 
-  mi <- getInterface (srcModuleName src) (MainInterface mode) (Just src)
+  mi <- getInterface (srcModuleName src) (MainInterface TypeCheck) (Just src)
 
   stCurrentModule `setTCLens'`
     Just ( iModuleName (miInterface mi)
          , iTopLevelModuleName (miInterface mi)
          )
 
-  return $ CheckResult' mi src
+  return ()
   where
   checkModuleName' m f =
     -- Andreas, 2016-07-11, issue 2092
@@ -444,19 +415,6 @@ loadDecodedModule file mi = do
     current <- useTC stPragmaOptions
     when (recheckBecausePragmaOptionsChanged (iOptionsUsed i) current) $
       throwError "options changed"
-
-  -- If any of the imports are newer we need to retype check
-  badHashMessages <- fmap lefts $ forM (iImportedModules i) $ \(impName, impHash) -> runExceptT $ do
-    reportSLn "import.iface" 30 $ concat ["Checking that module hash of import ", prettyShow impName, " matches ", prettyShow impHash ]
-    latestImpHash <- lift $ lift $ setCurrentRange impName $ moduleHash impName
-    reportSLn "import.iface" 30 $ concat ["Done checking module hash of import ", prettyShow impName]
-    when (impHash /= latestImpHash) $
-      throwError $ concat
-        [ "module hash for imported module ", prettyShow impName, " is out of date"
-        , " (import cached=", prettyShow impHash, ", latest=", prettyShow latestImpHash, ")"
-        ]
-
-  unlessNull badHashMessages (throwError . unlines)
 
   reportSLn "import.iface" 5 "  New module. Let's check it out."
   lift $ mergeInterface i
@@ -638,6 +596,3 @@ createInterface mname file isMain msrc = do
       , miPrimitive = isPrimitiveModule
       , miMode = moduleCheckMode isMain
       }
-
-moduleHash :: TopLevelModuleName -> TCM Hash
-moduleHash m = iFullHash <$> getNonMainInterface m Nothing
