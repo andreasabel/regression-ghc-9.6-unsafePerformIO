@@ -103,19 +103,6 @@ data Mode
   | TypeCheck
   deriving (Eq, Show)
 
--- | Are we loading the interface for the user-loaded file
---   or for an import?
-data MainInterface
-  = MainInterface Mode -- ^ For the main file.
-                       --
-                       --   In this case state changes inflicted by
-                       --   'createInterface' are preserved.
-  | NotMainInterface   -- ^ For an imported file.
-                       --
-                       --   In this case state changes inflicted by
-                       --   'createInterface' are not preserved.
-  deriving (Eq, Show)
-
 
 -- | The result and associated parameters of a type-checked file,
 --   when invoked directly via interaction or a backend.
@@ -151,7 +138,7 @@ typeCheckMain src = do
   -- Now do the type checking via getInterface.
   checkModuleName' (srcModuleName src) (srcOrigin src)
 
-  mi <- getInterface (srcModuleName src) (Just src)
+  mi <- getInterface (srcModuleName src) src
 
   stCurrentModule `setTCLens'`
     Just ( iModuleName (miInterface mi)
@@ -167,40 +154,22 @@ typeCheckMain src = do
     setCurrentRange m $ checkModuleName m f Nothing
 
 
--- | A more precise variant of 'getNonMainInterface'. If warnings are
--- encountered then they are returned instead of being turned into
--- errors.
-
 getInterface
   :: TopLevelModuleName
-  -> Maybe Source
-     -- ^ Optional: the source code and some information about the source code.
+  -> Source
   -> TCM ModuleInfo
-getInterface x msrc = do
+getInterface x src = do
      -- We remember but reset the pragma options locally
      -- Issue #3644 (Abel 2020-05-08): Set approximate range for errors in options
-     setCurrentRange (C.modPragmas . srcModule <$> msrc) $
+     setCurrentRange (C.modPragmas . srcModule <$> Just src) $
        -- Now reset the options
        setCommandLineOptions . stPersistentOptions . stPersistentState =<< getTC
 
-     do
-      file <- case msrc of
-        Nothing  -> findFile x
-        Just src -> do
-          -- Andreas, 2021-08-17, issue #5508.
-          -- So it happened with @msrc == Just{}@ that the file was not added to @ModuleToSource@,
-          -- only with @msrc == Nothing@ (then @findFile@ does it).
-          -- As a consequence, the file was added later, but with a file name constructed
-          -- from a module name.  As #5508 shows, this can be fatal in case-insensitive file systems.
-          -- The file name (with case variant) then no longer maps to the module name.
-          -- To prevent this, we register the connection in @ModuleToSource@ here,
-          -- where we have the correct spelling of the file name.
-          let file = srcOrigin src
-          modifyTCLens stModuleToSource $ Map.insert x (srcFilePath file)
-          pure file
+     let file = srcOrigin src
+     modifyTCLens stModuleToSource $ Map.insert x (srcFilePath file)
 
-      setCommandLineOptions . stPersistentOptions . stPersistentState =<< getTC
-      createInterface x file msrc
+     setCommandLineOptions . stPersistentOptions . stPersistentState =<< getTC
+     createInterface x file src
 
 
 -- | Tries to type check a module and write out its interface. The
@@ -213,9 +182,9 @@ getInterface x msrc = do
 createInterface
   :: TopLevelModuleName    -- ^ The expected module name.
   -> SourceFile            -- ^ The file to type check.
-  -> Maybe Source      -- ^ Optional information about the source code.
+  -> Source
   -> TCM ModuleInfo
-createInterface mname file msrc = do
+createInterface mname file src = do
   Bench.billTo [Bench.TopModule mname] $ do
     localTC (\e -> e { envCurrentPath = Just (srcFilePath file) }) $ do
 
@@ -224,8 +193,6 @@ createInterface mname file msrc = do
     verboseS "import.iface.create" 10 $ do
       visited <- prettyShow <$> getPrettyVisitedModules
       reportSLn "import.iface.create" 10 $ "  visited: " ++ visited
-
-    src <- maybe (parseSource file) pure msrc
 
     let srcPath = srcFilePath $ srcOrigin src
 
