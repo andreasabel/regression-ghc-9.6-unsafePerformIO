@@ -209,7 +209,6 @@ library
       Agda.Interaction.Base
       Agda.Interaction.ExitCode
       Agda.Interaction.FindFile
-      Agda.Interaction.Imports
       Agda.Interaction.Monad
       Agda.Interaction.Library.Base
       Agda.Interaction.Options
