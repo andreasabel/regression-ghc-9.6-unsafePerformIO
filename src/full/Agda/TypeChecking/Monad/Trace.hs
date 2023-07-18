@@ -31,47 +31,7 @@ import Agda.Utils.Pretty (prettyShow)
 ---------------------------------------------------------------------------
 
 interestingCall :: Call -> Bool
-interestingCall = \case
-    InferVar{}              -> False
-    InferDef{}              -> False
-    CheckArguments _ [] _ _ -> False
-    SetRange{}              -> False
-    NoHighlighting{}        -> False
-    -- Andreas, 2019-08-07, expanded catch-all pattern.
-    -- The previous presence of a catch-all raises the following question:
-    -- are all of the following really interesting?
-    CheckClause{}             -> True
-    CheckLHS{}                -> True
-    CheckPattern{}            -> True
-    CheckPatternLinearityType{}  -> True
-    CheckPatternLinearityValue{} -> True
-    CheckLetBinding{}         -> True
-    InferExpr{}               -> True
-    CheckExprCall{}           -> True
-    CheckDotPattern{}         -> True
-    IsTypeCall{}              -> True
-    IsType_{}                 -> True
-    CheckArguments{}          -> True
-    CheckMetaSolution{}       -> True
-    CheckTargetType{}         -> True
-    CheckDataDef{}            -> True
-    CheckRecDef{}             -> True
-    CheckConstructor{}        -> True
-    CheckIApplyConfluence{}   -> True
-    CheckConstructorFitsIn{}  -> True
-    CheckFunDefCall{}         -> True
-    CheckPragma{}             -> True
-    CheckPrimitive{}          -> True
-    CheckIsEmpty{}            -> True
-    CheckConfluence{}         -> True
-    CheckWithFunctionType{}   -> True
-    CheckSectionApplication{} -> True
-    CheckNamedWhere{}         -> True
-    ScopeCheckExpr{}          -> True
-    ScopeCheckDeclaration{}   -> True
-    ScopeCheckLHS{}           -> True
-    CheckProjection{}         -> True
-    ModuleContents{}          -> True
+interestingCall _ = True
 
 class (MonadTCEnv m, ReadTCState m) => MonadTrace m where
 
@@ -153,44 +113,7 @@ instance MonadTrace TCM where
     callHasRange = not $ null callRange
 
     -- Should the given call trigger interactive highlighting?
-    highlightCall = case call of
-      CheckClause{}             -> True
-      CheckLHS{}                -> True
-      CheckPattern{}            -> True
-      CheckPatternLinearityType{}  -> False
-      CheckPatternLinearityValue{} -> False
-      CheckLetBinding{}         -> True
-      InferExpr{}               -> True
-      CheckExprCall{}           -> True
-      CheckDotPattern{}         -> True
-      IsTypeCall{}              -> True
-      IsType_{}                 -> True
-      InferVar{}                -> True
-      InferDef{}                -> True
-      CheckArguments{}          -> True
-      CheckMetaSolution{}       -> False
-      CheckTargetType{}         -> False
-      CheckDataDef{}            -> True
-      CheckRecDef{}             -> True
-      CheckConstructor{}        -> True
-      CheckConstructorFitsIn{}  -> False
-      CheckFunDefCall _ _ _ h   -> h
-      CheckPragma{}             -> True
-      CheckPrimitive{}          -> True
-      CheckIsEmpty{}            -> True
-      CheckConfluence{}         -> False
-      CheckIApplyConfluence{}   -> False
-      CheckWithFunctionType{}   -> True
-      CheckSectionApplication{} -> True
-      CheckNamedWhere{}         -> False
-      ScopeCheckExpr{}          -> False
-      ScopeCheckDeclaration{}   -> False
-      ScopeCheckLHS{}           -> False
-      NoHighlighting{}          -> True
-      CheckProjection{}         -> False
-      SetRange{}                -> False
-      ModuleContents{}          -> False
-
+    highlightCall = True
     isNoHighlighting = case call of
       NoHighlighting{} -> True
       _ -> False

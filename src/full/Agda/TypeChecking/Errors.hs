@@ -36,7 +36,6 @@ import qualified Data.Set as Set
 import qualified Text.PrettyPrint.Boxes as Boxes
 
 import Agda.Syntax.Common
-import Agda.Syntax.Concrete.Definitions (notSoNiceDeclarations)
 import Agda.Syntax.Concrete.Pretty (prettyHiding, prettyRelevance)
 import Agda.Syntax.Notation
 import Agda.Syntax.Position
@@ -131,11 +130,6 @@ errorString err = case err of
   BothWithAndRHS                           -> "BothWithAndRHS"
   BuiltinInParameterisedModule{}           -> "BuiltinInParameterisedModule"
   BuiltinMustBeConstructor{}               -> "BuiltinMustBeConstructor"
-  ClashingDefinition{}                     -> "ClashingDefinition"
-  ClashingFileNamesFor{}                   -> "ClashingFileNamesFor"
-  ClashingImport{}                         -> "ClashingImport"
-  ClashingModule{}                         -> "ClashingModule"
-  ClashingModuleImport{}                   -> "ClashingModuleImport"
   CompilationError{}                       -> "CompilationError"
   ConstructorPatternInWrongDatatype{}      -> "ConstructorPatternInWrongDatatype"
   CyclicModuleDependency{}                 -> "CyclicModuleDependency"
@@ -195,8 +189,6 @@ errorString err = case err of
   InvalidType{}                            -> "InvalidType"
   InvalidTypeSort{}                        -> "InvalidTypeSort"
   FunctionTypeInSizeUniv{}                 -> "FunctionTypeInSizeUniv"
-  NotAValidLetBinding{}                    -> "NotAValidLetBinding"
-  NotValidBeforeField{}                    -> "NotValidBeforeField"
   NotAnExpression{}                        -> "NotAnExpression"
   NotImplemented{}                         -> "NotImplemented"
   NotSupported{}                           -> "NotSupported"
@@ -863,27 +855,6 @@ instance PrettyTCM TypeError where
             IsRecordModule -> return $ "(record module)"
           sep [prettyTCM m, anno ]
 
-    ClashingDefinition x y suggestion -> fsep $
-      pwords "Multiple definitions of" ++ [pretty x <> "."] ++
-      pwords "Previous definition at"
-      ++ [prettyTCM $ nameBindingSite $ qnameName y] ++
-      caseMaybe suggestion [] (\d ->
-        [  "Perhaps you meant to write "
-        $$ nest 2 ("'" <> pretty (notSoNiceDeclarations d) <> "'")
-        $$ ("at" <+> (pretty . envRange =<< askTC)) <> "?"
-        $$ "In data definitions separate from data declaration, the ':' and type must be omitted."
-        ])
-
-    ClashingModule m1 m2 -> fsep $
-      pwords "The modules" ++ [prettyTCM m1, "and", prettyTCM m2]
-      ++ pwords "clash."
-
-    ClashingImport x y -> fsep $
-      pwords "Import clash between" ++ [pretty x, "and", prettyTCM y]
-
-    ClashingModuleImport x y -> fsep $
-      pwords "Module import clash between" ++ [pretty x, "and", prettyTCM y]
-
     PatternShadowsConstructor x c -> fsep $
       pwords "The pattern variable" ++ [prettyTCM x] ++
       pwords "has the same name as the constructor" ++ [prettyTCM c]
@@ -908,20 +879,6 @@ instance PrettyTCM TypeError where
 
     NotAnExpression e -> fsep $
       pretty e : pwords "is not a valid expression."
-
-    NotAValidLetBinding nd -> fwords $
-      "Not a valid let-declaration"
-
-    NotValidBeforeField nd -> fwords $
-      "This declaration is illegal in a record before the last field"
-
-    NothingAppliedToHiddenArg e -> fsep $
-      [pretty e] ++ pwords "cannot appear by itself. It needs to be the argument to" ++
-      pwords "a function expecting an implicit argument."
-
-    NothingAppliedToInstanceArg e -> fsep $
-      [pretty e] ++ pwords "cannot appear by itself. It needs to be the argument to" ++
-      pwords "a function expecting an instance argument."
 
     NoParseForApplication es -> fsep (
       pwords "Could not parse the application" ++ [pretty $ C.RawApp noRange es])

@@ -7,7 +7,6 @@ import Agda.Syntax.Abstract as A
 import Agda.Syntax.Abstract.Views
 import Agda.Syntax.Common
 import Agda.Syntax.Fixity
-import qualified Agda.Syntax.Concrete.Definitions as D
 import qualified Agda.Syntax.Info as A
 import Agda.Syntax.Position
 import Agda.Syntax.Internal
@@ -166,15 +165,6 @@ instance PrettyTCM Call where
              if r1 == r2 then pwords "itself" else [prettyTCM r2]
 
     ScopeCheckExpr e -> fsep $ pwords "when scope checking" ++ [pretty e]
-
-    ScopeCheckDeclaration d ->
-      fwords ("when scope checking the declaration" ++ suffix) $$
-      nest 2 (vcat $ map pretty ds)
-      where
-      ds     = D.notSoNiceDeclarations d
-      suffix = case ds of
-        [_] -> ""
-        _   -> "s"
 
     ScopeCheckLHS x p ->
       fsep $ pwords "when scope checking the left-hand side" ++ [pretty p] ++

@@ -34,8 +34,6 @@ import qualified Agda.Syntax.Abstract as A
 import Agda.Syntax.Abstract (ScopeCopyInfo(..))
 import Agda.Syntax.Concrete as C
 import Agda.Syntax.Concrete.Fixity
-import Agda.Syntax.Concrete.Definitions ( DeclarationWarning(..) ,DeclarationWarning'(..) )
-  -- TODO: move the relevant warnings out of there
 import Agda.Syntax.Scope.Base as A
 
 import Agda.TypeChecking.Monad.Base
@@ -80,12 +78,6 @@ printLocals :: Int -> String -> ScopeM ()
 printLocals v s = verboseS "scope.top" v $ do
   locals <- getLocalVars
   reportSLn "scope.top" v $ s ++ " " ++ prettyShow locals
-
-scopeWarning' :: CallStack -> DeclarationWarning' -> ScopeM ()
-scopeWarning' loc = warning' loc . NicifierIssue . DeclarationWarning loc
-
-scopeWarning :: HasCallStack => DeclarationWarning' -> ScopeM ()
-scopeWarning = withCallerCallStack scopeWarning'
 
 ---------------------------------------------------------------------------
 -- * General operations
@@ -218,26 +210,7 @@ withCheckNoShadowing = bracket_ getLocalVars $ \ lvarsOld ->
 checkNoShadowing :: LocalVars  -- ^ Old local scope
                  -> LocalVars  -- ^ New local scope
                  -> ScopeM ()
-checkNoShadowing old new = do
-  opts <- pragmaOptions
-  when (ShadowingInTelescope_ `Set.member`
-          (optWarningMode opts ^. warningSet)) $ do
-    -- LocalVars is currnently an AssocList so the difference between
-    -- two local scope is the left part of the new one.
-    let diff = dropEnd (length old) new
-    -- Filter out the underscores.
-    let newNames = filter (not . isNoName) $ AssocList.keys diff
-    -- Associate each name to its occurrences.
-    let nameOccs1 :: [(C.Name, List1 Range)]
-        nameOccs1 = Map.toList $ Map.fromListWith (<>) $ map pairWithRange newNames
-    -- Warn if we have two or more occurrences of the same name.
-    let nameOccs2 :: [(C.Name, List2 Range)]
-        nameOccs2 = mapMaybe (traverseF List2.fromList1Maybe) nameOccs1
-    caseList nameOccs2 (return ()) $ \ c conflicts -> do
-      scopeWarning $ ShadowingInTelescope $ c :| conflicts
-  where
-    pairWithRange :: C.Name -> (C.Name, List1 Range)
-    pairWithRange n = (n, singleton $ getRange n)
+checkNoShadowing old new = return ()
 
 getVarsToBind :: ScopeM LocalVars
 getVarsToBind = useScope scopeVarsToBind
@@ -447,10 +420,6 @@ instance MonadFixityError ScopeM where
   throwMultiplePolarityPragmas xs     = case xs of
     x : _ -> setCurrentRange (getRange x) $ typeError $ MultiplePolarityPragmas xs
     []    -> __IMPOSSIBLE__
-  warnUnknownNamesInFixityDecl        = scopeWarning . UnknownNamesInFixityDecl
-  warnUnknownNamesInPolarityPragmas   = scopeWarning . UnknownNamesInPolarityPragmas
-  warnUnknownFixityInMixfixDecl       = scopeWarning . UnknownFixityInMixfixDecl
-  warnPolarityPragmasButNotPostulates = scopeWarning . PolarityPragmasButNotPostulates
 
 -- | Collect the fixity/syntax declarations and polarity pragmas from the list
 --   of declarations and store them in the scope.
@@ -530,7 +499,7 @@ bindName'' acc kind meta x y = do
   pure $ either Just (const Nothing) y'
   where
     success = Right $ AbsName y kind Defined meta
-    clash n = Left $ ClashingDefinition (C.QName x) n Nothing
+    clash n = Left $ undefined
 
     ambiguous f ds =
       if f kind && all (f . anameKind) ds
@@ -1014,26 +983,4 @@ openModule kind mam cm dir = do
   where
     -- Only checks for clashes that would lead to the same
     -- name being exported twice from the module.
-    checkForClashes = when (isJust $ publicOpen dir) $ do
-
-        exported <- allThingsInScope . restrictPrivate <$> (getNamedScope =<< getCurrentModule)
-
-        -- Get all exported concrete names that are mapped to at least 2 abstract names
-        let defClashes = filter (\ (_c, as) -> length as >= 2) $ Map.toList $ nsNames exported
-            modClashes = filter (\ (_c, as) -> length as >= 2) $ Map.toList $ nsModules exported
-
-            -- No ambiguity if concrete identifier is only mapped to
-            -- constructor names or only to projection names or only to pattern synonyms.
-            defClash (_, qs) = not $ or
-              [ all (isJust . isConName) ks
-              , all (== FldName)         ks
-              , all (== PatternSynName)  ks
-              ]
-              where ks = map anameKind qs
-        -- We report the first clashing exported identifier.
-        unlessNull (filter defClash defClashes) $
-          \ ((x, q:_) : _) -> typeError $ ClashingDefinition (C.QName x) (anameName q) Nothing
-
-        unlessNull modClashes $ \ ((_, ms) : _) -> do
-          caseMaybe (last2 ms) __IMPOSSIBLE__ $ \ (m0, m1) -> do
-            typeError $ ClashingModule (amodName m0) (amodName m1)
+    checkForClashes = return ()

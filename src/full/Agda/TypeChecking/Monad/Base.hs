@@ -63,8 +63,6 @@ import Agda.Benchmarking (Benchmark, Phase)
 import Agda.Syntax.Common
 import Agda.Syntax.Builtin (SomeBuiltin, BuiltinId, PrimitiveId)
 import qualified Agda.Syntax.Concrete as C
-import Agda.Syntax.Concrete.Definitions
-  (NiceDeclaration, DeclarationWarning, dwWarning, declarationWarningName)
 import qualified Agda.Syntax.Abstract as A
 import Agda.Syntax.Internal as I
 import Agda.Syntax.Internal.MetaVars
@@ -3285,7 +3283,6 @@ data Call
       Term   -- ^ (Simplified) clause RHS
       Type   -- ^ (Simplified) clause type
   | ScopeCheckExpr C.Expr
-  | ScopeCheckDeclaration NiceDeclaration
   | ScopeCheckLHS C.QName C.Pattern
   | NoHighlighting
   | ModuleContents  -- ^ Interaction command: show module contents.
@@ -3319,7 +3316,6 @@ instance Pretty Call where
     pretty CheckWithFunctionType{}   = "CheckWithFunctionType"
     pretty CheckNamedWhere{}         = "CheckNamedWhere"
     pretty ScopeCheckExpr{}          = "ScopeCheckExpr"
-    pretty ScopeCheckDeclaration{}   = "ScopeCheckDeclaration"
     pretty ScopeCheckLHS{}           = "ScopeCheckLHS"
     pretty CheckDotPattern{}         = "CheckDotPattern"
     pretty SetRange{}                = "SetRange"
@@ -3357,7 +3353,6 @@ instance HasRange Call where
     getRange CheckWithFunctionType{}             = noRange
     getRange (CheckNamedWhere m)                 = getRange m
     getRange (ScopeCheckExpr e)                  = getRange e
-    getRange (ScopeCheckDeclaration d)           = getRange d
     getRange (ScopeCheckLHS _ p)                 = getRange p
     getRange (CheckDotPattern e _)               = getRange e
     getRange (SetRange r)                        = r
@@ -4064,8 +4059,7 @@ data ArgsCheckState a = ACState
 -- checking the document further and interacting with the user.
 
 data Warning
-  = NicifierIssue            DeclarationWarning
-  | TerminationIssue         [TerminationError]
+  = TerminationIssue         [TerminationError]
   | UnreachableClauses       QName [Range]
   -- ^ `UnreachableClauses f rs` means that the clauses in `f` whose ranges are rs
   --   are unreachable
@@ -4212,7 +4206,6 @@ recordFieldWarningToError = \case
 warningName :: Warning -> WarningName
 warningName = \case
   -- special cases
-  NicifierIssue dw             -> declarationWarningName dw
   OptionWarning ow             -> optionWarningName ow
   LibraryWarning lw            -> libraryWarningName lw
   AsPatternShadowsConstructorOrPatternSynonym{} -> AsPatternShadowsConstructorOrPatternSynonym_
@@ -4516,7 +4509,6 @@ data TypeError
         | ShadowedModule C.Name [A.ModuleName]
         | BuiltinInParameterisedModule BuiltinId
         | IllegalDeclarationInDataDefinition [C.Declaration]
-            -- ^ The declaration list comes from a single 'C.NiceDeclaration'.
         | IllegalLetInTelescope C.TypedBinding
         | IllegalPatternInTelescope C.Binder
         | NoRHSRequiresAbsurdPattern [NamedArg A.Pattern]
@@ -4571,7 +4563,6 @@ data TypeError
         | NoSuchModule C.QName
         | AmbiguousName C.QName AmbiguousNameReason
         | AmbiguousModule C.QName (List1 A.ModuleName)
-        | ClashingDefinition C.QName A.QName (Maybe NiceDeclaration)
         | ClashingModule A.ModuleName A.ModuleName
         | ClashingImport C.Name A.QName
         | ClashingModuleImport C.Name A.ModuleName
@@ -4588,8 +4579,6 @@ data TypeError
             -- ^ The expr was used in the right hand side of an implicit module
             --   definition, but it wasn't of the form @m Delta@.
         | NotAnExpression C.Expr
-        | NotAValidLetBinding NiceDeclaration
-        | NotValidBeforeField NiceDeclaration
         | NothingAppliedToHiddenArg C.Expr
         | NothingAppliedToInstanceArg C.Expr
     -- Pattern synonym errors
