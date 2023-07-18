@@ -54,7 +54,6 @@ import Agda.Syntax.Scope.Base (inverseScopeLookupName)
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Reduce
 import Agda.TypeChecking.CompiledClause (CompiledClauses'(Fail))
-import Agda.TypeChecking.DisplayForm
 import Agda.TypeChecking.Free
 import Agda.TypeChecking.Substitute
 import Agda.TypeChecking.Telescope
@@ -201,24 +200,14 @@ instance Reify DisplayTerm where
   type ReifiesTo DisplayTerm = Expr
 
   reifyWhen = reifyWhenE
-  reify = \case
-    DTerm' v es       -> elims ==<< (reifyTerm False v, reify es)
-    DDot'  v es       -> elims ==<< (reify v, reify es)
-    DCon c ci vs      -> recOrCon (conName c) ci =<< reify vs
-    DDef f es         -> elims (A.Def f) =<< reify es
-    DWithApp u us es0 -> do
-      (e, es) <- reify (u, us)
-      elims (if null es then e else A.WithApp noExprInfo e es) =<< reify es0
+  reify = undefined
 
 -- | @reifyDisplayForm f vs fallback@
 --   tries to rewrite @f vs@ with a display form for @f@.
 --   If successful, reifies the resulting display term,
 --   otherwise, does @fallback@.
 reifyDisplayForm :: MonadReify m => QName -> I.Elims -> m A.Expr -> m A.Expr
-reifyDisplayForm f es fallback =
-  ifNotM displayFormsEnabled fallback $ {- else -}
-    caseMaybeM (displayForm f es) fallback reify
-
+reifyDisplayForm f es fallback = fallback
 -- | @reifyDisplayFormP@ tries to recursively
 --   rewrite a lhs with a display form.
 --
@@ -229,176 +218,7 @@ reifyDisplayFormP
   -> A.Patterns    -- ^ Patterns to be taken into account to find display form.
   -> A.Patterns    -- ^ Remaining trailing patterns ("with patterns").
   -> m (QName, A.Patterns) -- ^ New head symbol and new patterns.
-reifyDisplayFormP f ps wps = do
-  let fallback = return (f, ps ++ wps)
-  ifNotM displayFormsEnabled fallback $ {- else -} do
-    -- Try to rewrite @f 0 1 2 ... |ps|-1@ to a dt.
-    -- Andreas, 2014-06-11  Issue 1177:
-    -- I thought we need to add the placeholders for ps to the context,
-    -- because otherwise displayForm will not raise the display term
-    -- and we will have variable clashes.
-    -- But apparently, it has no influence...
-    -- Ulf, can you add an explanation?
-    md <- -- addContext (replicate (length ps) "x") $
-      displayForm f $ zipWith (\ p i -> I.Apply $ p $> I.var i) ps [0..]
-    reportSLn "reify.display" 60 $
-      "display form of " ++ prettyShow f ++ " " ++ show ps ++ " " ++ show wps ++ ":\n  " ++ show md
-    case md of
-      Just d  | okDisplayForm d -> do
-        -- In the display term @d@, @var i@ should be a placeholder
-        -- for the @i@th pattern of @ps@.
-        -- Andreas, 2014-06-11:
-        -- Are we sure that @d@ did not use @var i@ otherwise?
-        (f', ps', wps') <- displayLHS ps d
-        reportSDoc "reify.display" 70 $ do
-          doc <- prettyA $ SpineLHS empty f' (ps' ++ wps' ++ wps)
-          return $ vcat
-            [ "rewritten lhs to"
-            , "  lhs' = " <+> doc
-            ]
-        reifyDisplayFormP f' ps' (wps' ++ wps)
-      _ -> do
-        reportSLn "reify.display" 70 $ "display form absent or not valid as lhs"
-        fallback
-  where
-    -- Andreas, 2015-05-03: Ulf, please comment on what
-    -- is the idea behind okDisplayForm.
-    -- Ulf, 2016-04-15: okDisplayForm should return True if the display form
-    -- can serve as a valid left-hand side. That means checking that it is a
-    -- defined name applied to valid lhs eliminators (projections or
-    -- applications to constructor patterns).
-    okDisplayForm :: DisplayTerm -> Bool
-    okDisplayForm = \case
-      DWithApp d ds es ->
-        okDisplayForm d && all okDisplayTerm ds  && all okToDropE es
-        -- Andreas, 2016-05-03, issue #1950.
-        -- We might drop trailing hidden trivial (=variable) patterns.
-      DTerm' (I.Def f es') es -> all okElim es' && all okElim es
-      DDef f es               -> all okDElim es
-      DDot'{}                 -> False
-      DCon{}                  -> False
-      DTerm'{}                -> False
-
-    okDisplayTerm :: DisplayTerm -> Bool
-    okDisplayTerm = \case
-      DTerm' v es -> null es && okTerm v
-      DDot'{}     -> True
-      DCon{}      -> True
-      DDef{}      -> False
-      DWithApp{}  -> False
-
-    okDElim :: Elim' DisplayTerm -> Bool
-    okDElim (I.IApply x y r) = okDisplayTerm r
-    okDElim (I.Apply v) = okDisplayTerm $ unArg v
-    okDElim I.Proj{}    = True
-
-    okToDropE :: Elim' Term -> Bool
-    okToDropE (I.Apply v) = okToDrop v
-    okToDropE I.Proj{}    = False
-    okToDropE (I.IApply x y r) = False
-
-    okToDrop :: Arg I.Term -> Bool
-    okToDrop arg = notVisible arg && case unArg arg of
-      I.Var _ []   -> True
-      I.DontCare{} -> True  -- no matching on irrelevant things.  __IMPOSSIBLE__ anyway?
-      I.Level{}    -> True  -- no matching on levels. __IMPOSSIBLE__ anyway?
-      _ -> False
-
-    okArg :: Arg I.Term -> Bool
-    okArg = okTerm . unArg
-
-    okElim :: Elim' I.Term -> Bool
-    okElim (I.IApply x y r) = okTerm r
-    okElim (I.Apply a) = okArg a
-    okElim I.Proj{}  = True
-
-    okTerm :: I.Term -> Bool
-    okTerm (I.Var _ []) = True
-    okTerm (I.Con c ci vs) = all okElim vs
-    okTerm (I.Def x []) = isNoName $ qnameToConcrete x -- Handling wildcards in display forms
-    okTerm _            = False
-
-    -- Flatten a dt into (parentName, parentElims, withArgs).
-    flattenWith :: DisplayTerm -> (QName, [I.Elim' DisplayTerm], [I.Elim' DisplayTerm])
-    flattenWith (DWithApp d ds1 es2) =
-      let (f, es, ds0) = flattenWith d
-      in  (f, es, ds0 ++ map (I.Apply . defaultArg) ds1 ++ map (fmap DTerm) es2)
-    flattenWith (DDef f es) = (f, es, [])     -- .^ hacky, but we should only hit this when printing debug info
-    flattenWith (DTerm' (I.Def f es') es) = (f, map (fmap DTerm) $ es' ++ es, [])
-    flattenWith _ = __IMPOSSIBLE__
-
-    displayLHS
-      :: MonadReify m
-      => A.Patterns   -- Patterns to substituted into display term.
-      -> DisplayTerm  -- Display term.
-      -> m (QName, A.Patterns, A.Patterns)  -- New head, patterns, with-patterns.
-    displayLHS ps d = do
-        let (f, vs, es) = flattenWith d
-        ps  <- mapM elimToPat vs
-        wps <- mapM (updateNamedArg (A.WithP empty) <.> elimToPat) es
-        return (f, ps, wps)
-      where
-        argToPat :: MonadReify m => Arg DisplayTerm -> m (NamedArg A.Pattern)
-        argToPat arg = traverse termToPat arg
-
-        elimToPat :: MonadReify m => I.Elim' DisplayTerm -> m (NamedArg A.Pattern)
-        elimToPat (I.IApply _ _ r) = argToPat (Arg defaultArgInfo r)
-        elimToPat (I.Apply arg) = argToPat arg
-        elimToPat (I.Proj o d)  = return $ defaultNamedArg $ A.ProjP patNoRange o $ unambiguous d
-
-        -- Substitute variables in display term by patterns.
-        termToPat :: MonadReify m => DisplayTerm -> m (Named_ A.Pattern)
-
-        -- Main action HERE:
-        termToPat (DTerm (I.Var n [])) =
-          return $ unArg $ fromMaybe __IMPOSSIBLE__ $ ps !!! n
-
-        termToPat (DCon c ci vs)          = fmap unnamed <$> tryRecPFromConP =<< do
-           A.ConP (ConPatInfo ci patNoRange ConPatEager) (unambiguous (conName c)) <$> mapM argToPat vs
-
-        termToPat (DTerm' (I.Con c ci vs) es) = fmap unnamed <$> tryRecPFromConP =<< do
-           A.ConP (ConPatInfo ci patNoRange ConPatEager) (unambiguous (conName c)) <$>
-             mapM (elimToPat . fmap DTerm) (vs ++ es)
-
-        termToPat (DTerm (I.Def _ [])) = return $ unnamed $ A.WildP patNoRange
-        termToPat (DDef _ [])          = return $ unnamed $ A.WildP patNoRange
-
-        termToPat (DTerm (I.Lit l))    = return $ unnamed $ A.LitP patNoRange l
-
-        termToPat (DDot' v es) =
-          unnamed . A.DotP patNoRange <$> do elims ==<< (termToExpr v, reify es)
-
-        termToPat v =
-          unnamed . A.DotP patNoRange <$> reify v
-
-        len = length ps
-
-        argsToExpr :: MonadReify m => I.Args -> m [Arg A.Expr]
-        argsToExpr = mapM (traverse termToExpr)
-
-        -- TODO: restructure this to avoid having to repeat the code for reify
-        termToExpr :: MonadReify m => Term -> m A.Expr
-        termToExpr v = do
-          reportSLn "reify.display" 60 $ "termToExpr " ++ show v
-          -- After unSpine, a Proj elimination is __IMPOSSIBLE__!
-          case unSpine v of
-            I.Con c ci es -> do
-              let vs = fromMaybe __IMPOSSIBLE__ $ mapM isApplyElim es
-              apps (A.Con (unambiguous (conName c))) =<< argsToExpr vs
-            I.Def f es -> do
-              let vs = fromMaybe __IMPOSSIBLE__ $ mapM isApplyElim es
-              apps (A.Def f) =<< argsToExpr vs
-            I.Var n es -> do
-              let vs = fromMaybe __IMPOSSIBLE__ $ mapM isApplyElim es
-              -- Andreas, 2014-06-11  Issue 1177
-              -- due to β-normalization in substitution,
-              -- even the pattern variables @n < len@ can be
-              -- applied to some args @vs@.
-              e <- if n < len
-                   then return $ A.patternToExpr $ namedArg $ indexWithDefault __IMPOSSIBLE__ ps n
-                   else reify (I.var (n - len))
-              apps e =<< argsToExpr vs
-            _ -> return underscore
+reifyDisplayFormP f ps wps = return (f, ps ++ wps)
 
 instance Reify Literal where
   type ReifiesTo Literal = Expr
@@ -451,7 +271,7 @@ reifyTerm expandAnonDefs0 v0 = tryReifyAsLetBinding v0 $ do
   reportSDoc "reify.term" 80 $ pure $ "reifyTerm v = " <+> pretty v
   -- Ulf 2014-07-10: Don't expand anonymous when display forms are disabled
   -- (i.e. when we don't care about nice printing)
-  expandAnonDefs <- return expandAnonDefs0 `and2M` displayFormsEnabled
+  expandAnonDefs <- return expandAnonDefs0
   -- Andreas, 2016-07-21 if --postfix-projections
   -- then we print system-generated projections as postfix, else prefix.
   havePfp <- optPostfixProjections <$> pragmaOptions
@@ -470,7 +290,7 @@ reifyTerm expandAnonDefs0 v0 = tryReifyAsLetBinding v0 $ do
     I.Def x es -> do
       reportSDoc "reify.def" 80 $ return $ "reifying def" <+> pretty x
       (x, es) <- reifyPathPConstAsPath x es
-      reifyDisplayForm x es $ reifyDef expandAnonDefs x es
+      reifyDef expandAnonDefs x es
 
 --    I.Lam info b | isAbsurdBody b -> return $ A. AbsurdLam noExprInfo $ getHiding info
     I.Lam info b    -> do

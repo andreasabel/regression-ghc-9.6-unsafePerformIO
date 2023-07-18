@@ -288,14 +288,12 @@ library
       Agda.TypeChecking.CompiledClause.Match
       Agda.TypeChecking.Coverage.Match
       Agda.TypeChecking.Coverage.SplitTree
-      Agda.TypeChecking.DisplayForm
       Agda.TypeChecking.DropArgs
       Agda.TypeChecking.Errors
       Agda.TypeChecking.Free
       Agda.TypeChecking.Free.Lazy
       Agda.TypeChecking.Free.Precompute
       Agda.TypeChecking.Free.Reduce
-      Agda.TypeChecking.Functions
       Agda.TypeChecking.Irrelevance
       Agda.TypeChecking.MetaVars.Mention
       Agda.TypeChecking.Monad.Base
