@@ -20,6 +20,13 @@ import Agda.TypeChecking.Errors (prettyError)
 import Agda.TypeChecking.Monad (TCM, initEnv, initState, unTCM)
 import Agda.TypeChecking.Monad.Options ( setPragmaOptions )
 
+import Agda.TypeChecking.Monad.Base   ( TCM, ReduceM, runReduceM )
+import Agda.TypeChecking.Monad.Debug  ( MonadDebug, __IMPOSSIBLE_VERBOSE__ )
+import Agda.TypeChecking.Reduce.Monad ()
+
+import Agda.Utils.CallStack           ( HasCallStack )
+import Agda.Utils.Impossible          ( __IMPOSSIBLE__ )
+
 -- import Agda.Utils.Monad
 -- import Agda.Utils.Null (empty)
 import Agda.Utils.Lens
@@ -27,7 +34,7 @@ import qualified Agda.Utils.Maybe.Strict as Strict
 import qualified Agda.Utils.Trie as Trie
 
 -- import Agda.Utils.Impossible
-import Agda.ImpossibleTest (impossibleTestReduceM)
+-- import Agda.ImpossibleTest (impossibleTestReduceM)
 
 main :: IO ()
 main = runTCMPrettyErrors $ do
@@ -43,3 +50,8 @@ runTCMPrettyErrors :: TCM () -> IO ()
 runTCMPrettyErrors m = do
     r <- liftIO $ newIORef initState
     unTCM (catchError m $ (liftIO . putStr) <=< prettyError) r initEnv
+
+impossibleTestReduceM :: (HasCallStack) => [String] -> TCM a
+impossibleTestReduceM = runReduceM . \case
+  []   -> __IMPOSSIBLE__
+  strs -> __IMPOSSIBLE_VERBOSE__ $ unwords strs
