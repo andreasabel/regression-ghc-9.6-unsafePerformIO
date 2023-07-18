@@ -20,20 +20,11 @@ import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
 
-import qualified Data.List as List
-
-import Data.Map (Map)
 import qualified Data.Map as Map
-import qualified Data.HashMap.Strict as HMap
-import Data.Set (Set)
-import qualified Data.Set as Set
-import Data.Text (Text)
 import qualified Data.Text.Lazy as TL
 
-import qualified Agda.Syntax.Abstract as A
 import qualified Agda.Syntax.Concrete as C
 import Agda.Syntax.Concrete.Attribute
-import Agda.Syntax.Abstract.Name
 import Agda.Syntax.Common
 import Agda.Syntax.Parser
 import Agda.Syntax.Position
@@ -51,7 +42,6 @@ import qualified Agda.Interaction.Options.Lenses as Lens
 
 import Agda.Utils.FileName
 import Agda.Utils.Maybe
-import Agda.Utils.Monad
 import Agda.Utils.Null
 import Agda.Utils.Pretty hiding (Mode)
 
@@ -95,9 +85,6 @@ parseSource sourceFile@(SourceFile f) = Bench.billTo [Bench.Parsing] $ do
     , srcAttributes  = attrs
     }
 
-srcDefaultPragmas :: Source -> [OptionsPragma]
-srcDefaultPragmas _ = []
-
 srcFilePragmas :: Source -> [OptionsPragma]
 srcFilePragmas src = pragmas
   where
@@ -113,7 +100,6 @@ srcFilePragmas src = pragmas
 --   ranges of the pragmas for error reporting.
 setOptionsFromSourcePragmas :: Source -> TCM ()
 setOptionsFromSourcePragmas src = do
-  mapM_ setOptionsFromPragma (srcDefaultPragmas src)
   mapM_ setOptionsFromPragma (srcFilePragmas    src)
 
 -- | Is the aim to type-check the top-level module, or only to
@@ -136,53 +122,6 @@ data MainInterface
                        --   In this case state changes inflicted by
                        --   'createInterface' are not preserved.
   deriving (Eq, Show)
-
--- | The kind of interface produced by 'createInterface'
-moduleCheckMode :: MainInterface -> ModuleCheckMode
-moduleCheckMode = \case
-    MainInterface TypeCheck                       -> ModuleTypeChecked
-    NotMainInterface                              -> ModuleTypeChecked
-    MainInterface ScopeCheck                      -> ModuleScopeChecked
-
--- | Merge an interface into the current proof state.
-mergeInterface :: Interface -> TCM ()
-mergeInterface i = do
-    let sig     = iSignature i
-        warns   = iWarnings i
-    addImportedThings
-      sig
-      (iMetaBindings i)
-      (iPatternSyns i)
-      (iDisplayForms i)
-      (iUserWarnings i)
-      (iPartialDefs i)
-      warns
-      (iOpaqueBlocks i)
-      (iOpaqueNames i)
-
-addImportedThings
-  :: Signature
-  -> RemoteMetaStore
-  -> A.PatternSynDefns
-  -> DisplayForms
-  -> Map A.QName Text      -- ^ Imported user warnings
-  -> Set QName             -- ^ Name of imported definitions which are partial
-  -> [TCWarning]
-  -> Map OpaqueId OpaqueBlock
-  -> Map QName OpaqueId
-  -> TCM ()
-addImportedThings isig metas patsyns display userwarn
-                  partialdefs warnings oblock oid = do
-  stImports              `modifyTCLens` \ imp -> unionSignatures [imp, isig]
-  stImportedMetaStore    `modifyTCLens` HMap.union metas
-  stImportedUserWarnings `modifyTCLens` \ imp -> Map.union imp userwarn
-  stImportedPartialDefs  `modifyTCLens` \ imp -> Set.union imp partialdefs
-  stPatternSynImports    `modifyTCLens` \ imp -> Map.union imp patsyns
-  stImportedDisplayForms `modifyTCLens` \ imp -> HMap.unionWith (++) imp display
-  stTCWarnings           `modifyTCLens` \ imp -> imp `List.union` warnings
-  stOpaqueBlocks         `modifyTCLens` \ imp -> imp `Map.union` oblock
-  stOpaqueIds            `modifyTCLens` \ imp -> imp `Map.union` oid
-  addImportedInstances isig
 
 -- | If the module has already been visited (without warnings), then
 -- its interface is returned directly. Otherwise the computation is
@@ -330,127 +269,7 @@ getInterface x isMain msrc =
           pure file
 
       setCommandLineOptions . stPersistentOptions . stPersistentState =<< getTC
-      case isMain of
-        MainInterface _ -> createInterface x file isMain msrc
-        NotMainInterface -> createInterfaceIsolated x file msrc
-
-
-
-loadDecodedModule
-  :: SourceFile
-     -- ^ File we process.
-  -> ModuleInfo
-  -> ExceptT String TCM ModuleInfo
-loadDecodedModule file mi = do
-  let fp = filePath $ srcFilePath file
-  let i = miInterface mi
-
-  -- Check that it's the right version
-  reportSLn "import.iface" 5 $ "  imports: " ++ prettyShow (iImportedModules i)
-
-  -- We set the pragma options of the skipped file here, so that
-  -- we can check that they are compatible with those of the
-  -- imported modules. Also, if the top-level file is skipped we
-  -- want the pragmas to apply to interactive commands in the UI.
-  -- Jesper, 2021-04-18: Check for changed options in library files!
-  -- (see #5250)
-  libOptions <- lift $ getLibraryOptions
-    (srcFilePath file)
-    (iTopLevelModuleName i)
-  lift $ mapM_ setOptionsFromPragma (libOptions ++ iFilePragmaOptions i)
-
-  -- Check that options that matter haven't changed compared to
-  -- current options (issue #2487)
-  unlessM (lift $ Lens.isBuiltinModule fp) $ do
-    current <- useTC stPragmaOptions
-    when (recheckBecausePragmaOptionsChanged (iOptionsUsed i) current) $
-      throwError "options changed"
-
-  reportSLn "import.iface" 5 "  New module. Let's check it out."
-  lift $ mergeInterface i
-
-  return mi
-
--- | Run the type checker on a file and create an interface.
---
---   Mostly, this function calls 'createInterface'.
---   But if it is not the main module we check,
---   we do it in a fresh state, suitably initialize,
---   in order to forget some state changes after successful type checking.
-
-createInterfaceIsolated
-  :: TopLevelModuleName
-     -- ^ Module name of file we process.
-  -> SourceFile
-     -- ^ File we process.
-  -> Maybe Source
-     -- ^ Optional: the source code and some information about the source code.
-  -> TCM ModuleInfo
-createInterfaceIsolated x file msrc = do
-
-      ms          <- getImportPath
-      range       <- asksTC envRange
-      call        <- asksTC envCall
-      mf          <- useTC stModuleToSource
-      vs          <- getVisitedModules
-      ds          <- getDecodedModules
-      opts        <- stPersistentOptions . stPersistentState <$> getTC
-      isig        <- useTC stImports
-      metas       <- useTC stImportedMetaStore
-      display     <- useTC stImportsDisplayForms
-      userwarn    <- useTC stImportedUserWarnings
-      partialdefs <- useTC stImportedPartialDefs
-      opaqueblk   <- useTC stOpaqueBlocks
-      opaqueid    <- useTC stOpaqueIds
-      ipatsyns <- getPatternSynImports
-      -- Every interface is treated in isolation. Note: Some changes to
-      -- the persistent state may not be preserved if an error other
-      -- than a type error or an IO exception is encountered in an
-      -- imported module.
-      (mi, newModToSource, newDecodedModules) <- (either throwError pure =<<) $
-           -- The cache should not be used for an imported module, and it
-           -- should be restored after the module has been type-checked
-           freshTCM $
-             withImportPath ms $
-             localTC (\e -> e
-                              -- Andreas, 2014-08-18:
-                              -- Preserve the range of import statement
-                              -- for reporting termination errors in
-                              -- imported modules:
-                            { envRange              = range
-                            , envCall               = call
-                            }) $ do
-               setDecodedModules ds
-               setCommandLineOptions opts
-               stModuleToSource `setTCLens` mf
-               setVisitedModules vs
-               addImportedThings isig metas ipatsyns display
-                 userwarn partialdefs [] opaqueblk opaqueid
-
-               r  <- createInterface x file NotMainInterface msrc
-               mf' <- useTC stModuleToSource
-               ds' <- getDecodedModules
-               return (r, mf', ds')
-
-      stModuleToSource `setTCLens` newModToSource
-      setDecodedModules newDecodedModules
-
-      -- We skip the file which has just been type-checked to
-      -- be able to forget some of the local state from
-      -- checking the module.
-      -- Note that this doesn't actually read the interface
-      -- file, only the cached interface. (This comment is not
-      -- correct, see
-      -- test/Fail/customised/NestedProjectRoots.err.)
-      validated <- runExceptT $ loadDecodedModule file mi
-
-      -- NOTE: This attempts to type-check FOREVER if for some
-      -- reason it continually fails to validate interface.
-      let recheckOnError = \msg -> do
-            reportSLn "import.iface" 1 $ "Failed to validate just-loaded interface: " ++ msg
-            createInterfaceIsolated x file msrc
-
-      either recheckOnError pure validated
+      createInterface x file msrc
 
 
 -- | Tries to type check a module and write out its interface. The
@@ -463,10 +282,9 @@ createInterfaceIsolated x file msrc = do
 createInterface
   :: TopLevelModuleName    -- ^ The expected module name.
   -> SourceFile            -- ^ The file to type check.
-  -> MainInterface         -- ^ Are we dealing with the main module?
   -> Maybe Source      -- ^ Optional information about the source code.
   -> TCM ModuleInfo
-createInterface mname file isMain msrc = do
+createInterface mname file msrc = do
   Bench.billTo [Bench.TopModule mname] $ do
     localTC (\e -> e { envCurrentPath = Just (srcFilePath file) }) $ do
 
@@ -506,5 +324,5 @@ createInterface mname file isMain msrc = do
       { miInterface = undefined
       , miWarnings = undefined
       , miPrimitive = isPrimitiveModule
-      , miMode = moduleCheckMode isMain
+      , miMode = ModuleTypeChecked
       }
