@@ -13,11 +13,11 @@ import Control.Monad.IO.Class ( MonadIO(..) )
 
 import Agda.Interaction.Options.Base (defaultPragmaOptions, lensOptVerbose, parseVerboseKey)
 
-import Agda.TypeChecking.Errors
+import Agda.TypeChecking.Errors (prettyError)
 import Agda.TypeChecking.Monad (TCM, runTCMTop)
 import Agda.TypeChecking.Monad.Options ( setPragmaOptions )
 
-import Agda.Utils.Monad
+-- import Agda.Utils.Monad
 -- import Agda.Utils.Null (empty)
 import Agda.Utils.Lens
 import qualified Agda.Utils.Maybe.Strict as Strict
@@ -39,11 +39,7 @@ main = runTCMPrettyErrors $ do
 runTCMPrettyErrors :: TCM () -> IO ()
 runTCMPrettyErrors tcm = do
   _ <- runTCMTop $
-      ( tcm
-          `catchError` \err -> do
-            s2s <- prettyTCWarnings' =<< getAllWarningsOfTCErr err
+    catchError tcm $ \ err -> do
             s1  <- prettyError err
-            let ss = filter (not . null) $ s2s ++ [s1]
-            unless (null s1) (liftIO $ putStr $ unlines ss)
-      )
+            liftIO $ putStr s1
   return ()
