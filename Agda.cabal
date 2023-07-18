@@ -212,14 +212,10 @@ library
       Agda.Syntax.Concrete.Generic
       Agda.Syntax.Concrete.Glyph
       Agda.Syntax.Concrete.Name
-      Agda.Syntax.Concrete.Operators
-      Agda.Syntax.Concrete.Operators.Parser
-      Agda.Syntax.Concrete.Operators.Parser.Monad
       Agda.Syntax.Concrete.Pattern
       Agda.Syntax.Concrete.Pretty
       Agda.Syntax.DoNotation
       Agda.Syntax.Fixity
-      Agda.Syntax.IdiomBrackets
       Agda.Syntax.Info
       Agda.Syntax.Internal
       Agda.Syntax.Internal.Defs
@@ -233,7 +229,6 @@ library
       Agda.Syntax.Position
       Agda.Syntax.Reflected
       Agda.Syntax.Scope.Base
-      Agda.Syntax.Scope.Flat
       Agda.Syntax.Scope.Monad
       Agda.Syntax.TopLevelModuleName
       Agda.Syntax.Translation.AbstractToConcrete
