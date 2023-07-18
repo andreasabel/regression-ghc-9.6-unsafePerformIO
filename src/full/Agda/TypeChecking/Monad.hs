@@ -14,7 +14,6 @@ module Agda.TypeChecking.Monad
     , module Agda.TypeChecking.Monad.Options
     , module Agda.TypeChecking.Monad.Pure
     , module Agda.TypeChecking.Monad.Signature
-    , module Agda.TypeChecking.Monad.SizedTypes
     , module Agda.TypeChecking.Monad.State
     , module Agda.TypeChecking.Monad.Statistics
     , module Agda.TypeChecking.Monad.Trace
@@ -36,7 +35,6 @@ import Agda.TypeChecking.Monad.Options
 import Agda.TypeChecking.Monad.Open
 import Agda.TypeChecking.Monad.Pure
 import Agda.TypeChecking.Monad.Signature
-import Agda.TypeChecking.Monad.SizedTypes
 import Agda.TypeChecking.Monad.State
 import Agda.TypeChecking.Monad.Statistics
 import Agda.TypeChecking.Monad.Trace
