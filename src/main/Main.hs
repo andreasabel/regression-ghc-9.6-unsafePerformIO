@@ -4,8 +4,6 @@
 -- executable.
 {-# OPTIONS_GHC -Wall #-}
 
-{-# LANGUAGE PatternSynonyms #-}
-
 module Main (main) where
 
 import qualified Control.Exception as E
@@ -19,10 +17,9 @@ import Agda.Interaction.ExitCode (AgdaError(..), exitAgdaWith)
 import Agda.Interaction.Options.Base (defaultPragmaOptions, lensOptVerbose, parseVerboseKey)
 
 import Agda.TypeChecking.Errors
-import Agda.TypeChecking.Monad (TCM, envCurrentPath, localTC, runTCMTop)
+import Agda.TypeChecking.Monad (TCM, runTCMTop)
 import Agda.TypeChecking.Monad.Options ( setPragmaOptions )
 
-import Agda.Utils.FileName (pattern AbsolutePath)
 import Agda.Utils.Monad
 -- import Agda.Utils.Null (empty)
 import Agda.Utils.Lens
@@ -34,9 +31,6 @@ import Agda.ImpossibleTest (impossibleTestReduceM)
 
 main :: IO ()
 main = runTCMPrettyErrors $ do
-  let srcPath = AbsolutePath "ImpossibleVerboseReduceM.agda"
-
-  localTC (\e -> e { envCurrentPath = Just srcPath }) $ do
 
     let verb = Strict.Just $ Trie.singleton (parseVerboseKey "impossible") 10
     setPragmaOptions $ set lensOptVerbose verb defaultPragmaOptions
