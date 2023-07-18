@@ -58,7 +58,6 @@ import Agda.TypeChecking.Pretty
 import Agda.TypeChecking.Pretty.Call
 import Agda.TypeChecking.Pretty.Warning
 import Agda.TypeChecking.Substitute
-import Agda.TypeChecking.Telescope ( ifPiType )
 
 import Agda.Utils.FileName
 import Agda.Utils.Float  ( toStringWithoutDotZero )

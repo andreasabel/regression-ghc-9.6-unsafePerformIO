@@ -313,8 +313,6 @@ library
       Agda.TypeChecking.Substitute
       Agda.TypeChecking.Substitute.Class
       Agda.TypeChecking.Substitute.DeBruijn
-      Agda.TypeChecking.Telescope
-      Agda.TypeChecking.Telescope.Path
       Agda.TypeChecking.Warnings
       Agda.Utils.AffineHole
       Agda.Utils.Applicative

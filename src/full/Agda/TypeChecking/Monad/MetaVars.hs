@@ -43,7 +43,6 @@ import Agda.TypeChecking.Monad.Context
 import Agda.TypeChecking.Monad.Signature (HasConstInfo)
 import Agda.TypeChecking.Monad.State
 import Agda.TypeChecking.Substitute
-import {-# SOURCE #-} Agda.TypeChecking.Telescope
 
 import qualified Agda.Utils.BiMap as BiMap
 import Agda.Utils.Functor ((<.>))
@@ -326,7 +325,6 @@ getMetaTypeInContext ::
 getMetaTypeInContext m = do
   mv@MetaVar{ mvJudgement = j } <- lookupLocalMeta m
   case j of
-    HasType{ jMetaType = t } -> piApplyM t =<< getMetaContextArgs mv
     IsSort{}                 -> __IMPOSSIBLE__
 
 -- | Is it a local meta-variable that might be generalized?

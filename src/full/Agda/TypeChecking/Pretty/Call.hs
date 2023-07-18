@@ -16,7 +16,6 @@ import Agda.Syntax.Translation.AbstractToConcrete
 
 import Agda.TypeChecking.Monad.Base
 import Agda.TypeChecking.Substitute
-import Agda.TypeChecking.Telescope
 import Agda.TypeChecking.Monad.Context
 import Agda.TypeChecking.Monad.Closure
 import Agda.TypeChecking.Monad.Debug
@@ -98,23 +97,6 @@ instance PrettyTCM Call where
       pwords "when checking the projection" ++
       [ sep [ prettyTCM x <+> ":"
             , nest 2 $ prettyTCM t ] ]
-
-    CheckArguments r es t0 t1 -> do
-      TelV tel cod <- telView t0
-      let
-        prefix =
-          pwords "when checking that" ++
-          map hPretty es ++
-          pwords (P.singPlural es "is a valid argument" "are valid arguments")
-      case unEl cod of
-        Dummy{} -> fsep $
-          prefix ++
-          pwords "to a function accepting arguments of type" ++
-          [prettyTCM tel]
-        _ -> fsep $
-          prefix ++
-          pwords "to a function of type" ++
-          [prettyTCM t0]
 
     CheckMetaSolution r m a v -> fsep $
       pwords "when checking that the solution" ++ [prettyTCM v] ++
