@@ -39,7 +39,6 @@ import Agda.TypeChecking.Monad.Debug
 import Agda.TypeChecking.Monad.Context
 import Agda.TypeChecking.Monad.Constraints
 import Agda.TypeChecking.Monad.Env
-import Agda.TypeChecking.Monad.Mutual
 import Agda.TypeChecking.Monad.Options
 import Agda.TypeChecking.Monad.State
 import Agda.TypeChecking.Monad.Trace
@@ -167,8 +166,6 @@ addConstant q d = do
   let d' = abstract tel' $ d { defName = q }
   reportSDoc "tc.signature" 60 $ "lambda-lifted definition =" <?> pretty d'
   modifySignature $ updateDefinitions $ HMap.insertWith (+++) q d'
-  i <- currentOrFreshMutualBlock
-  setMutualBlock i q
   where
     new +++ old = new { defDisplay = defDisplay new ++ defDisplay old
                       , defInstance = defInstance new `mplus` defInstance old }

@@ -8,7 +8,6 @@ module Agda.TypeChecking.Monad
     , module Agda.TypeChecking.Monad.Env
     , module Agda.TypeChecking.Monad.Imports
     , module Agda.TypeChecking.Monad.MetaVars
-    , module Agda.TypeChecking.Monad.Mutual
     , module Agda.TypeChecking.Monad.Options
     , module Agda.TypeChecking.Monad.Pure
     , module Agda.TypeChecking.Monad.Signature
@@ -25,7 +24,6 @@ import Agda.TypeChecking.Monad.Debug
 import Agda.TypeChecking.Monad.Env
 import Agda.TypeChecking.Monad.Imports
 import Agda.TypeChecking.Monad.MetaVars
-import Agda.TypeChecking.Monad.Mutual
 import Agda.TypeChecking.Monad.Options
 import Agda.TypeChecking.Monad.Pure
 import Agda.TypeChecking.Monad.Signature
