@@ -15,11 +15,6 @@ module Agda.Interaction.Imports
 
 import Prelude hiding (null)
 
-import Control.Monad
-import Control.Monad.Except
-import Control.Monad.State
-import Control.Monad.Trans.Maybe
-
 import qualified Data.Map as Map
 import qualified Data.Text.Lazy as TL
 
@@ -41,8 +36,6 @@ import Agda.Interaction.Options
 import qualified Agda.Interaction.Options.Lenses as Lens
 
 import Agda.Utils.FileName
-import Agda.Utils.Maybe
-import Agda.Utils.Null
 import Agda.Utils.Pretty hiding (Mode)
 
 type AgdaLibFile = ()
@@ -123,65 +116,6 @@ data MainInterface
                        --   'createInterface' are not preserved.
   deriving (Eq, Show)
 
--- | If the module has already been visited (without warnings), then
--- its interface is returned directly. Otherwise the computation is
--- used to find the interface and the computed interface is stored for
--- potential later use.
-
-alreadyVisited :: TopLevelModuleName ->
-                  MainInterface ->
-                  PragmaOptions ->
-                  TCM ModuleInfo ->
-                  TCM ModuleInfo
-alreadyVisited x isMain _currentOptions getModule =
-  case isMain of
-    MainInterface TypeCheck                       -> useExistingOrLoadAndRecordVisited ModuleTypeChecked
-    NotMainInterface                              -> useExistingOrLoadAndRecordVisited ModuleTypeChecked
-    MainInterface ScopeCheck                      -> useExistingOrLoadAndRecordVisited ModuleScopeChecked
-  where
-  useExistingOrLoadAndRecordVisited :: ModuleCheckMode -> TCM ModuleInfo
-  useExistingOrLoadAndRecordVisited mode = fromMaybeM loadAndRecordVisited (existingWithoutWarnings mode)
-
-  -- Case: already visited.
-  --
-  -- A module with warnings should never be allowed to be
-  -- imported from another module.
-  existingWithoutWarnings :: ModuleCheckMode -> TCM (Maybe ModuleInfo)
-  existingWithoutWarnings mode = runMaybeT $ exceptToMaybeT $ do
-    mi <- maybeToExceptT "interface has not been visited in this context" $ MaybeT $
-      getVisitedModule x
-
-    when (miMode mi < mode) $
-      throwError "previously-visited interface was not sufficiently checked"
-
-    unless (null $ miWarnings mi) $
-      throwError "previously-visited interface had warnings"
-
-    reportSLn "import.visit" 10 $ "  Already visited " ++ prettyShow x
-
-    lift $ return mi
-
-  loadAndRecordVisited :: TCM ModuleInfo
-  loadAndRecordVisited = do
-    reportSLn "import.visit" 5 $ "  Getting interface for " ++ prettyShow x
-    mi <- getModule
-    reportSLn "import.visit" 5 $ "  Now we've looked at " ++ prettyShow x
-
-    -- Interfaces are not stored if we are only scope-checking, or
-    -- if any warnings were encountered.
-    case (isMain, miWarnings mi) of
-      (MainInterface ScopeCheck, _) -> return ()
-      (_, _:_)                      -> return ()
-      _                             -> storeDecodedModule mi
-
-    reportS "warning.import" 10
-      [ "module: " ++ show (moduleNameParts x)
-      , "WarningOnImport: " ++ show (iImportWarning (miInterface mi))
-      ]
-
-    visitModule mi
-    return mi
-
 
 -- | The result and associated parameters of a type-checked file,
 --   when invoked directly via interaction or a backend.
@@ -217,7 +151,7 @@ typeCheckMain src = do
   -- Now do the type checking via getInterface.
   checkModuleName' (srcModuleName src) (srcOrigin src)
 
-  mi <- getInterface (srcModuleName src) (MainInterface TypeCheck) (Just src)
+  mi <- getInterface (srcModuleName src) (Just src)
 
   stCurrentModule `setTCLens'`
     Just ( iModuleName (miInterface mi)
@@ -239,20 +173,17 @@ typeCheckMain src = do
 
 getInterface
   :: TopLevelModuleName
-  -> MainInterface
   -> Maybe Source
      -- ^ Optional: the source code and some information about the source code.
   -> TCM ModuleInfo
-getInterface x isMain msrc =
-  addImportCycleCheck x $ do
+getInterface x msrc = do
      -- We remember but reset the pragma options locally
      -- Issue #3644 (Abel 2020-05-08): Set approximate range for errors in options
-     currentOptions <- useTC stPragmaOptions
      setCurrentRange (C.modPragmas . srcModule <$> msrc) $
        -- Now reset the options
        setCommandLineOptions . stPersistentOptions . stPersistentState =<< getTC
 
-     alreadyVisited x isMain currentOptions $ do
+     do
       file <- case msrc of
         Nothing  -> findFile x
         Just src -> do
