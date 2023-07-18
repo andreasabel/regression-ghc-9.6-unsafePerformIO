@@ -16,7 +16,6 @@ module Agda.Interaction.Imports
 import qualified Data.Text.Lazy as TL
 
 import qualified Agda.Syntax.Concrete as C
-import Agda.Syntax.Common (FileType)
 import Agda.Syntax.Parser (moduleParser, parseFile, readFilePM)
 import Agda.Syntax.Position (mkRangeFile)
 import Agda.Syntax.TopLevelModuleName (TopLevelModuleName)
@@ -31,9 +30,7 @@ import Agda.Interaction.Library.Base (OptionsPragma(..))
 -- | The decorated source code.
 
 data Source = Source
-  { srcText        :: TL.Text               -- ^ Source code.
-  , srcFileType    :: FileType              -- ^ Source file type
-  , srcOrigin      :: SourceFile            -- ^ Source location at the time of its parsing
+  { srcOrigin      :: SourceFile            -- ^ Source location at the time of its parsing
   , srcModule      :: C.Module              -- ^ The parsed module.
   , srcModuleName  :: TopLevelModuleName    -- ^ The top-level module name.
   }
@@ -42,21 +39,18 @@ data Source = Source
 
 parseSource :: SourceFile -> TCM Source
 parseSource sourceFile@(SourceFile f) = do
-  (source, fileType, parsedMod, parsedModName) <- mdo
+  (parsedMod, parsedModName) <- mdo
     -- This piece of code uses mdo because the top-level module name
     -- (parsedModName) is obtained from the parser's result, but it is
     -- also used by the parser.
     let rf = mkRangeFile f (Just parsedModName)
-    source                         <- runPM $ readFilePM rf
-    ((parsedMod, _attrs), fileType) <- runPM $
-                                      parseFile moduleParser rf $
-                                      TL.unpack source
-    parsedModName                  <- moduleName f parsedMod
-    return (source, fileType, parsedMod, parsedModName)
+    source <- runPM $ readFilePM rf
+    ((parsedMod, _attrs), _fileType)
+      <- runPM $ parseFile moduleParser rf $ TL.unpack source
+    parsedModName <- moduleName f parsedMod
+    return (parsedMod, parsedModName)
   return Source
-    { srcText        = source
-    , srcFileType    = fileType
-    , srcOrigin      = sourceFile
+    { srcOrigin      = sourceFile
     , srcModule      = parsedMod
     , srcModuleName  = parsedModName
     }
