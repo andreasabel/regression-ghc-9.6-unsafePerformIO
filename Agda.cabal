@@ -283,8 +283,6 @@ library
       Agda.Syntax.Translation.AbstractToConcrete
       Agda.Syntax.Translation.ConcreteToAbstract
       Agda.TypeChecking.CompiledClause
-      Agda.TypeChecking.CompiledClause.Match
-      Agda.TypeChecking.Coverage.Match
       Agda.TypeChecking.Coverage.SplitTree
       Agda.TypeChecking.DropArgs
       Agda.TypeChecking.Errors
@@ -292,7 +290,6 @@ library
       Agda.TypeChecking.Free.Lazy
       Agda.TypeChecking.Free.Precompute
       Agda.TypeChecking.Free.Reduce
-      Agda.TypeChecking.MetaVars.Mention
       Agda.TypeChecking.Monad.Base
       Agda.TypeChecking.Monad.Benchmark
       Agda.TypeChecking.Monad.Builtin

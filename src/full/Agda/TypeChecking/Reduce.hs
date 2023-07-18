@@ -53,7 +53,6 @@ import Agda.TypeChecking.CompiledClause
 
 import Agda.TypeChecking.Reduce.Monad
 
-import {-# SOURCE #-} Agda.TypeChecking.CompiledClause.Match
 import {-# SOURCE #-} Agda.TypeChecking.Pretty
 
 import Agda.Utils.Functor
