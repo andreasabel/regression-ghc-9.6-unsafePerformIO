@@ -281,7 +281,6 @@ library
       Agda.Syntax.Translation.ConcreteToAbstract
       Agda.TypeChecking.CompiledClause
       Agda.TypeChecking.Coverage.SplitTree
-      Agda.TypeChecking.DropArgs
       Agda.TypeChecking.Errors
       Agda.TypeChecking.Free
       Agda.TypeChecking.Free.Lazy

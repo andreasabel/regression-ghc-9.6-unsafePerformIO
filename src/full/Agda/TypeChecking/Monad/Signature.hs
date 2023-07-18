@@ -44,7 +44,6 @@ import Agda.TypeChecking.Monad.Open
 import Agda.TypeChecking.Monad.Options
 import Agda.TypeChecking.Monad.State
 import Agda.TypeChecking.Monad.Trace
-import Agda.TypeChecking.DropArgs
 import Agda.TypeChecking.Warnings
 import Agda.TypeChecking.Positivity.Occurrence
 import Agda.TypeChecking.Substitute
@@ -613,9 +612,7 @@ applySection' new ptel old ts ScopeCopyInfo{ renNames = rd, renModules = rm } = 
                         , clauseFullRange   = getRange $ defClauses d
                         , clauseTel         = EmptyTel
                         , namedClausePats   = []
-                        , clauseBody        = Just $ dropArgs pars $ case oldDef of
-                            Function{funProjection = Right p} -> projDropParsApply p ProjSystem rel ts'
-                            _ -> Def x $ map Apply ts'
+                        , clauseBody        = Nothing
                         , clauseType        = Just $ defaultArg t
                         , clauseCatchall    = False
                         , clauseExact       = Just True
