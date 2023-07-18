@@ -15,7 +15,7 @@ import System.Exit
 import Agda.Interaction.ExitCode (AgdaError(..), exitAgdaWith)
 import Agda.Interaction.Options
 import Agda.Interaction.FindFile ( SourceFile(SourceFile) )
-import Agda.Interaction.Imports  ( typeCheckMain, parseSource )
+import Agda.Interaction.Imports  ( typeCheckMain )
 
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Errors
@@ -41,7 +41,7 @@ runAgdaWithOptions
   -> TCM ()
 runAgdaWithOptions inputFile opts = do
   setCommandLineOptions opts
-  typeCheckMain =<< parseSource (SourceFile inputFile)
+  typeCheckMain
 
 
 -- | Run a TCM action in IO; catch and pretty print errors.
