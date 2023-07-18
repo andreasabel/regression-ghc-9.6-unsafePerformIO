@@ -46,7 +46,6 @@ import Agda.Syntax.Translation.ConcreteToAbstract as CToA
 import Agda.TypeChecking.Errors
 import Agda.TypeChecking.Warnings hiding (warnings)
 import Agda.TypeChecking.Monad
-import Agda.TypeChecking.Pretty as P
 import qualified Agda.TypeChecking.Monad.Benchmark as Bench
 
 import Agda.Interaction.FindFile
@@ -56,11 +55,9 @@ import qualified Agda.Interaction.Options.Lenses as Lens
 
 import Agda.Utils.FileName
 import Agda.Utils.Maybe
-import qualified Agda.Utils.Maybe.Strict as Strict
 import Agda.Utils.Monad
 import Agda.Utils.Null
 import Agda.Utils.Pretty hiding (Mode)
-import Agda.Utils.Hash
 
 type AgdaLibFile = ()
 
@@ -503,27 +500,6 @@ createInterfaceIsolated x file msrc = do
       either recheckOnError pure validated
 
 
--- | Formats and outputs the "Checking", "Finished" and "Loading " messages.
-
-chaseMsg
-  :: String               -- ^ The prefix, like @Checking@, @Finished@, @Loading @.
-  -> TopLevelModuleName   -- ^ The module name.
-  -> Maybe String         -- ^ Optionally: the file name.
-  -> TCM ()
-chaseMsg kind x file = do
-  indentation <- (`replicate` ' ') <$> asksTC (pred . length . envImportPath)
-  traceImports <- optTraceImports <$> commandLineOptions
-  let maybeFile = caseMaybe file "." $ \ f -> " (" ++ f ++ ")."
-      vLvl | kind == "Checking"
-             && traceImports > 0 = 1
-           | kind == "Finished"
-             && traceImports > 1 = 1
-           | List.isPrefixOf "Loading" kind
-             && traceImports > 2 = 1
-           | otherwise = 2
-  reportSLn "import.chase" vLvl $ concat
-    [ indentation, kind, " ", prettyShow x, maybeFile ]
-
 -- | Tries to type check a module and write out its interface. The
 -- function only writes out an interface file if it does not encounter
 -- any warnings.
@@ -538,24 +514,7 @@ createInterface
   -> Maybe Source      -- ^ Optional information about the source code.
   -> TCM ModuleInfo
 createInterface mname file isMain msrc = do
-  let x = mname
-  let fp = filePath $ srcFilePath file
-  let checkMsg = case isMain of
-                   MainInterface ScopeCheck -> "Reading "
-                   _                        -> "Checking"
-      withMsgs = bracket_
-       (chaseMsg checkMsg x $ Just fp)
-       (const $ do ws <- getAllWarnings AllWarnings
-                   let classified = classifyWarnings ws
-                   let wa' = filter ((Strict.Just (Just mname) ==) .
-                                     fmap rangeFileName . tcWarningOrigin) $
-                             tcWarnings classified
-                   unless (null wa') $
-                     reportSDoc "warning" 1 $ P.vcat $ P.prettyTCM <$> wa'
-                   when (null (nonFatalErrors classified)) $ chaseMsg "Finished" x Nothing)
-
-  withMsgs $
-    Bench.billTo [Bench.TopModule mname] $
+  Bench.billTo [Bench.TopModule mname] $ do
     localTC (\e -> e { envCurrentPath = Just (srcFilePath file) }) $ do
 
     reportSLn "import.iface.create" 5 $
