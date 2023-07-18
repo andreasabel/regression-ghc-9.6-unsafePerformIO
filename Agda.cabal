@@ -205,8 +205,6 @@ library
 
   exposed-modules:
       Agda.Benchmarking
-      Agda.Compiler.Backend
-      Agda.Compiler.Common
       Agda.ImpossibleTest
       Agda.Interaction.Base
       Agda.Interaction.ExitCode

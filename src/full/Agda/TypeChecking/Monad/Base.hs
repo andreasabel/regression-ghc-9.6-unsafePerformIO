@@ -88,7 +88,6 @@ import Agda.TypeChecking.Free.Lazy (Free(freeVars'), underBinder', underBinder)
 -- This only matters when interpreted in ghci, which sees all of the module's
 -- exported symbols, not just the ones defined in the `.hs-boot`. See the
 -- comment in ../../Compiler/Backend.hs-boot
-import {-# SOURCE #-} Agda.Compiler.Backend hiding (Args)
 
 import Agda.Interaction.Options
 import Agda.Interaction.Options.Warnings
@@ -327,6 +326,8 @@ data PersistentTCState = PersistentTCSt
     -- ^ Current backends with their options
   }
   deriving Generic
+
+type Backend = ()
 
 data LoadedFileCache = LoadedFileCache
   { lfcCached  :: !CachedTypeCheckLog

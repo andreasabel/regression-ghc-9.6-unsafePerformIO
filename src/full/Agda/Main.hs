@@ -20,20 +20,19 @@ import qualified Agda.Interaction.Imports as Imp
 import Agda.TypeChecking.Monad
 import Agda.TypeChecking.Errors
 
-import Agda.Compiler.Backend
-
 import Agda.Utils.FileName (absolute, AbsolutePath)
 import Agda.Utils.Monad
 
 import Agda.Utils.Impossible
 
 -- | The main function
-runAgda :: [Backend] -> IO ()
-runAgda backends = runTCMPrettyErrors $ do
-  argv <- liftIO getArgs
-  let (Right (_bs, opts), _warns) = runOptM $ parseBackendOptions backends argv defaultOptions
-  Just inputFile <- liftIO $ mapM absolute $ optInputFile opts
-  runAgdaWithOptions inputFile opts
+runAgda :: [a] -> IO ()
+runAgda _backends =
+  runTCMPrettyErrors $ do
+    argv <- liftIO getArgs
+    let (Right opts, _warns) = runOptM $ getOptSimple (stripRTS argv) standardOptions inputFlag defaultOptions
+    Just inputFile <- liftIO $ mapM absolute $ optInputFile opts
+    runAgdaWithOptions inputFile opts
 
 -- | Run Agda with parsed command line options
 runAgdaWithOptions
