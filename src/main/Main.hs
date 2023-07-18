@@ -8,6 +8,7 @@ module Main (main) where
 
 import qualified Control.Exception as E
 
+import Control.Monad          ( (<=<) )
 import Control.Monad.Except   ( MonadError(..) )
 import Control.Monad.IO.Class ( MonadIO(..) )
 
@@ -16,7 +17,7 @@ import Data.IORef (newIORef)
 import Agda.Interaction.Options.Base (defaultPragmaOptions, lensOptVerbose, parseVerboseKey)
 
 import Agda.TypeChecking.Errors (prettyError)
-import Agda.TypeChecking.Monad (TCM, TCErr, initEnv, initState, unTCM)
+import Agda.TypeChecking.Monad (TCM, initEnv, initState, unTCM)
 import Agda.TypeChecking.Monad.Options ( setPragmaOptions )
 
 -- import Agda.Utils.Monad
@@ -40,14 +41,5 @@ main = runTCMPrettyErrors $ do
 -- | Run a TCM action in IO; catch and pretty print errors.
 runTCMPrettyErrors :: TCM () -> IO ()
 runTCMPrettyErrors m = do
-  runTCMTop $
-    catchError m $ \ err -> do
-            s1  <- prettyError err
-            liftIO $ putStr s1
-
--- | Running the type checking monad on toplevel (with initial state).
-runTCMTop :: TCM () -> IO ()
-runTCMTop m =
-    do r <- liftIO $ newIORef initState
-       unTCM m r initEnv
-  `E.catch` \ (_ :: TCErr) -> return ()
+    r <- liftIO $ newIORef initState
+    unTCM (catchError m $ (liftIO . putStr) <=< prettyError) r initEnv
