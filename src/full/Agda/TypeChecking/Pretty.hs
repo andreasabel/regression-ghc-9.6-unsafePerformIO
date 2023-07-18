@@ -27,10 +27,8 @@ import Agda.Syntax.Fixity
 import Agda.Syntax.Internal
 import Agda.Syntax.Literal
 import Agda.Syntax.Translation.InternalToAbstract
-import Agda.Syntax.Translation.ReflectedToAbstract
 import Agda.Syntax.Translation.AbstractToConcrete
 import qualified Agda.Syntax.Translation.AbstractToConcrete as Reexport (MonadAbsToCon)
-import qualified Agda.Syntax.Translation.ReflectedToAbstract as R
 import qualified Agda.Syntax.Abstract as A
 import qualified Agda.Syntax.Concrete as C
 import qualified Agda.Syntax.Abstract.Pretty as AP
@@ -213,11 +211,6 @@ instance PrettyTCM ContextEntry       where prettyTCM = prettyA <=< reify
 instance PrettyTCM Permutation where prettyTCM = text . show
 instance PrettyTCM Polarity    where prettyTCM = text . show
 instance PrettyTCM IsForced    where prettyTCM = text . show
-
-prettyR
-  :: (R.ToAbstract r, PrettyTCM (R.AbsOfRef r), MonadPretty m, MonadError TCErr m)
-  => r -> m Doc
-prettyR = prettyTCM <=< toAbstractWithoutImplicit
 
 instance (Pretty a, PrettyTCM a, EndoSubst a) => PrettyTCM (Substitution' a) where
   prettyTCM IdS        = "idS"

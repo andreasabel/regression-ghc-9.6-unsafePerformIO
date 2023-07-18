@@ -283,7 +283,6 @@ library
       Agda.Syntax.Translation.AbstractToConcrete
       Agda.Syntax.Translation.ConcreteToAbstract
       Agda.Syntax.Translation.InternalToAbstract
-      Agda.Syntax.Translation.ReflectedToAbstract
       Agda.TypeChecking.CompiledClause
       Agda.TypeChecking.CompiledClause.Match
       Agda.TypeChecking.Coverage.Match
