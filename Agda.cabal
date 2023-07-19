@@ -205,14 +205,11 @@ executable agda
       Agda.Syntax.Abstract.Pattern
       Agda.Syntax.Abstract.PatternSynonyms
       Agda.Syntax.Abstract.Pretty
-      -- Agda.Syntax.Abstract.UsedNames
       Agda.Syntax.Abstract.Views
       Agda.Syntax.Builtin
       Agda.Syntax.Common
       Agda.Syntax.Concrete
-      -- Agda.Syntax.Concrete.Attribute
       Agda.Syntax.Concrete.Fixity
-      -- Agda.Syntax.Concrete.Generic
       Agda.Syntax.Concrete.Glyph
       Agda.Syntax.Concrete.Name
       Agda.Syntax.Concrete.Pattern
@@ -220,7 +217,6 @@ executable agda
       Agda.Syntax.Fixity
       Agda.Syntax.Info
       Agda.Syntax.Internal
-      -- Agda.Syntax.Internal.Defs
       Agda.Syntax.Internal.Elim
       Agda.Syntax.Internal.Generic
       Agda.Syntax.Internal.MetaVars
@@ -229,7 +225,6 @@ executable agda
       Agda.Syntax.Literal
       Agda.Syntax.Notation
       Agda.Syntax.Position
-      -- Agda.Syntax.Reflected
       Agda.Syntax.Scope.Base
       Agda.Syntax.Scope.Monad
       Agda.Syntax.TopLevelModuleName
@@ -239,7 +234,6 @@ executable agda
       Agda.TypeChecking.Errors
       Agda.TypeChecking.Free
       Agda.TypeChecking.Free.Lazy
-      -- Agda.TypeChecking.Free.Precompute
       Agda.TypeChecking.Monad
       Agda.TypeChecking.Monad.Base
       Agda.TypeChecking.Monad.Benchmark
@@ -271,38 +265,21 @@ executable agda
       Agda.Utils.Bag
       Agda.Utils.Benchmark
       Agda.Utils.BiMap
-      -- Agda.Utils.BoolSet
       Agda.Utils.Boolean
       Agda.Utils.CallStack
       Agda.Utils.CallStack.Base
       Agda.Utils.CallStack.Pretty
-      -- Agda.Utils.Char
-      -- Agda.Utils.Cluster
       Agda.Utils.Either
       Agda.Utils.Empty
-      -- Agda.Utils.Environment
-      -- Agda.Utils.Fail
-      -- Agda.Utils.Favorites
       Agda.Utils.FileName
       Agda.Utils.Float
       Agda.Utils.Function
       Agda.Utils.Functor
       Agda.Utils.Graph.AdjacencyMap.Unidirectional
-      -- Agda.Utils.Graph.TopSort
       Agda.Utils.Hash
-      -- Agda.Utils.HashTable
-      -- Agda.Utils.Haskell.Syntax
-      -- Agda.Utils.IO
-      -- Agda.Utils.IO.Binary
-      -- Agda.Utils.IO.Directory
-      -- Agda.Utils.IO.TempFile
       Agda.Utils.IO.UTF8
-      -- Agda.Utils.IORef
       Agda.Utils.Impossible
-      -- Agda.Utils.IndexedList
-      -- Agda.Utils.IntSet.Infinite
       Agda.Utils.Lens
-      -- Agda.Utils.Lens.Examples
       Agda.Utils.List
       Agda.Utils.List1
       Agda.Utils.List2
@@ -312,13 +289,11 @@ executable agda
       Agda.Utils.Maybe.Strict
       Agda.Utils.Memo
       Agda.Utils.Monad
-      -- Agda.Utils.Monoid
       Agda.Utils.Null
       Agda.Utils.POMonoid
       Agda.Utils.Parser.MemoisedCPS
       Agda.Utils.PartialOrd
       Agda.Utils.Permutation
-      -- Agda.Utils.Pointer
       Agda.Utils.Pretty
       Agda.Utils.ProfileOptions
       Agda.Utils.SemiRing
@@ -328,20 +303,14 @@ executable agda
       Agda.Utils.SmallSet
       Agda.Utils.String
       Agda.Utils.Suffix
-      -- Agda.Utils.Three
       Agda.Utils.Time
       Agda.Utils.Trie
       Agda.Utils.Tuple
       Agda.Utils.TypeLevel
       Agda.Utils.TypeLits
-      -- Agda.Utils.Unsafe
       Agda.Utils.Update
-      -- Agda.Utils.VarSet
-      -- Agda.Utils.Warshall
       Agda.Utils.WithDefault
-      -- Agda.Utils.Zipper
       Agda.Version
-      -- Agda.VersionCommit
 
   autogen-modules:
       Paths_Agda
