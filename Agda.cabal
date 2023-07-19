@@ -214,7 +214,6 @@ library
       Agda.Syntax.Concrete.Name
       Agda.Syntax.Concrete.Pattern
       Agda.Syntax.Concrete.Pretty
-      Agda.Syntax.DoNotation
       Agda.Syntax.Fixity
       Agda.Syntax.Info
       Agda.Syntax.Internal
