@@ -175,15 +175,18 @@ common language
     , zlib                 == 0.6.*
 
 
--- Agda library
----------------------------------------------------------------------------
 
-library
+executable agda
   import:           language
 
-  hs-source-dirs:   src/full
+  main-is:        Main.hs
 
-  exposed-modules:
+  hs-source-dirs:
+    src/full
+    src/main
+
+  -- exposed-modules:
+  other-modules:
       Agda.Benchmarking
       Agda.ImpossibleTest
       Agda.Interaction.Base
@@ -202,14 +205,14 @@ library
       Agda.Syntax.Abstract.Pattern
       Agda.Syntax.Abstract.PatternSynonyms
       Agda.Syntax.Abstract.Pretty
-      Agda.Syntax.Abstract.UsedNames
+      -- Agda.Syntax.Abstract.UsedNames
       Agda.Syntax.Abstract.Views
       Agda.Syntax.Builtin
       Agda.Syntax.Common
       Agda.Syntax.Concrete
-      Agda.Syntax.Concrete.Attribute
+      -- Agda.Syntax.Concrete.Attribute
       Agda.Syntax.Concrete.Fixity
-      Agda.Syntax.Concrete.Generic
+      -- Agda.Syntax.Concrete.Generic
       Agda.Syntax.Concrete.Glyph
       Agda.Syntax.Concrete.Name
       Agda.Syntax.Concrete.Pattern
@@ -217,7 +220,7 @@ library
       Agda.Syntax.Fixity
       Agda.Syntax.Info
       Agda.Syntax.Internal
-      Agda.Syntax.Internal.Defs
+      -- Agda.Syntax.Internal.Defs
       Agda.Syntax.Internal.Elim
       Agda.Syntax.Internal.Generic
       Agda.Syntax.Internal.MetaVars
@@ -226,7 +229,7 @@ library
       Agda.Syntax.Literal
       Agda.Syntax.Notation
       Agda.Syntax.Position
-      Agda.Syntax.Reflected
+      -- Agda.Syntax.Reflected
       Agda.Syntax.Scope.Base
       Agda.Syntax.Scope.Monad
       Agda.Syntax.TopLevelModuleName
@@ -236,7 +239,7 @@ library
       Agda.TypeChecking.Errors
       Agda.TypeChecking.Free
       Agda.TypeChecking.Free.Lazy
-      Agda.TypeChecking.Free.Precompute
+      -- Agda.TypeChecking.Free.Precompute
       Agda.TypeChecking.Monad
       Agda.TypeChecking.Monad.Base
       Agda.TypeChecking.Monad.Benchmark
@@ -268,38 +271,38 @@ library
       Agda.Utils.Bag
       Agda.Utils.Benchmark
       Agda.Utils.BiMap
-      Agda.Utils.BoolSet
+      -- Agda.Utils.BoolSet
       Agda.Utils.Boolean
       Agda.Utils.CallStack
       Agda.Utils.CallStack.Base
       Agda.Utils.CallStack.Pretty
-      Agda.Utils.Char
-      Agda.Utils.Cluster
+      -- Agda.Utils.Char
+      -- Agda.Utils.Cluster
       Agda.Utils.Either
       Agda.Utils.Empty
-      Agda.Utils.Environment
-      Agda.Utils.Fail
-      Agda.Utils.Favorites
+      -- Agda.Utils.Environment
+      -- Agda.Utils.Fail
+      -- Agda.Utils.Favorites
       Agda.Utils.FileName
       Agda.Utils.Float
       Agda.Utils.Function
       Agda.Utils.Functor
       Agda.Utils.Graph.AdjacencyMap.Unidirectional
-      Agda.Utils.Graph.TopSort
+      -- Agda.Utils.Graph.TopSort
       Agda.Utils.Hash
-      Agda.Utils.HashTable
-      Agda.Utils.Haskell.Syntax
-      Agda.Utils.IO
-      Agda.Utils.IO.Binary
-      Agda.Utils.IO.Directory
-      Agda.Utils.IO.TempFile
+      -- Agda.Utils.HashTable
+      -- Agda.Utils.Haskell.Syntax
+      -- Agda.Utils.IO
+      -- Agda.Utils.IO.Binary
+      -- Agda.Utils.IO.Directory
+      -- Agda.Utils.IO.TempFile
       Agda.Utils.IO.UTF8
-      Agda.Utils.IORef
+      -- Agda.Utils.IORef
       Agda.Utils.Impossible
-      Agda.Utils.IndexedList
-      Agda.Utils.IntSet.Infinite
+      -- Agda.Utils.IndexedList
+      -- Agda.Utils.IntSet.Infinite
       Agda.Utils.Lens
-      Agda.Utils.Lens.Examples
+      -- Agda.Utils.Lens.Examples
       Agda.Utils.List
       Agda.Utils.List1
       Agda.Utils.List2
@@ -309,13 +312,13 @@ library
       Agda.Utils.Maybe.Strict
       Agda.Utils.Memo
       Agda.Utils.Monad
-      Agda.Utils.Monoid
+      -- Agda.Utils.Monoid
       Agda.Utils.Null
       Agda.Utils.POMonoid
       Agda.Utils.Parser.MemoisedCPS
       Agda.Utils.PartialOrd
       Agda.Utils.Permutation
-      Agda.Utils.Pointer
+      -- Agda.Utils.Pointer
       Agda.Utils.Pretty
       Agda.Utils.ProfileOptions
       Agda.Utils.SemiRing
@@ -325,46 +328,23 @@ library
       Agda.Utils.SmallSet
       Agda.Utils.String
       Agda.Utils.Suffix
-      Agda.Utils.Three
+      -- Agda.Utils.Three
       Agda.Utils.Time
       Agda.Utils.Trie
       Agda.Utils.Tuple
       Agda.Utils.TypeLevel
       Agda.Utils.TypeLits
-      Agda.Utils.Unsafe
+      -- Agda.Utils.Unsafe
       Agda.Utils.Update
-      Agda.Utils.VarSet
-      Agda.Utils.Warshall
+      -- Agda.Utils.VarSet
+      -- Agda.Utils.Warshall
       Agda.Utils.WithDefault
-      Agda.Utils.Zipper
+      -- Agda.Utils.Zipper
       Agda.Version
-      Agda.VersionCommit
+      -- Agda.VersionCommit
 
   autogen-modules:
       Paths_Agda
 
   other-modules:
       Paths_Agda
-
--- Agda binary
----------------------------------------------------------------------------
-
-executable agda
-  import: language
-
-  hs-source-dirs: src/main
-  main-is:        Main.hs
-  build-depends:  Agda
-
-  -- If someone installs Agda with the setuid bit set, then the
-  -- presence of +RTS may be a security problem (see GHC bug #3910).
-  -- However, we sometimes recommend people to use +RTS to control
-  -- Agda's memory usage, so we want this functionality enabled by
-  -- default.
-
-  -- The threaded RTS by default starts a major GC after a program has
-  -- been idle for 0.3 s. This feature turned out to be annoying, so
-  -- the idle GC is now by default turned off (-I0).
-  ghc-options:
-    -threaded -rtsopts
-    "-with-rtsopts=-M3.5G -I0"
