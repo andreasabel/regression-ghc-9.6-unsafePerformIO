@@ -1,4 +1,5 @@
 This is a partial shrinkage of the Agda code base to reproduce a regression in the optimizer of GHC 9.6 concerning `unsafePerformIO` (used for debug messages).
+- https://gitlab.haskell.org/ghc/ghc/-/issues/23699
 
 With GHC 9.6.2, a debug message that is printed with `-O0` is not printed with `-O1`.
 
